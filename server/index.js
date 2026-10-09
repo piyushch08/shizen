@@ -351,7 +351,7 @@ app.post('/api/process/document', upload.array('files', 20), async (req, res) =>
 // MERGE PROCESSING (PDFs & Images)
 // ========================
 app.post('/api/process/merge', upload.array('files', 20), async (req, res) => {
-  if (!req.files || req.files.length < 2) return res.status(400).json({ error: 'At least 2 files required' });
+  if (!req.files || req.files.length < 1) return res.status(400).json({ error: 'At least 1 file required' });
 
   const outputPath = path.join(__dirname, 'output', `merged_${Date.now()}.pdf`);
   const inputPaths = req.files.map(f => f.path);
@@ -404,25 +404,28 @@ app.post('/api/process/merge', upload.array('files', 20), async (req, res) => {
 });
 
 // ========================
-// FORMAT CONVERSION (PDF <-> PPT/PPTX)
+// FORMAT CONVERSION (PDF <-> PPT/PPTX, PDF -> JPG)
 // ========================
 app.post('/api/process/convert', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-  const { targetFormat } = req.body; // 'pdf' or 'pptx'
+  const { targetFormat } = req.body; // 'pdf', 'pptx', 'jpg'
   const inputPath = req.file.path;
   const originalName = req.file.originalname;
   const baseName = originalName.substring(0, originalName.lastIndexOf('.')) || originalName;
-  const outFormat = targetFormat === 'pdf' ? 'pdf' : 'pptx';
-  const downloadName = `${baseName}_converted.${outFormat}`;
-  const outputPath = path.join(__dirname, 'output', `${req.file.filename}.${outFormat}`);
+  const outFormat = targetFormat; // default
+  let downloadName = `${baseName}_converted.${outFormat}`;
 
   try {
     let task;
-    if (outFormat === 'pdf') {
+    if (targetFormat === 'pdf') {
       task = ilovepdf.newTask('officepdf'); // Office to PDF
-    } else {
+    } else if (targetFormat === 'pptx') {
       task = ilovepdf.newTask('pdfpowerpoint'); // PDF to PPTX
+    } else if (targetFormat === 'jpg') {
+      task = ilovepdf.newTask('pdfjpg'); // PDF to JPG
+    } else {
+      throw new Error("Unsupported target format");
     }
 
     await task.start();
@@ -431,6 +434,18 @@ app.post('/api/process/convert', upload.single('file'), async (req, res) => {
     await task.process();
     const data = await task.download();
     
+    let finalExt = outFormat;
+    if (targetFormat === 'jpg') {
+      // Check magic bytes for ZIP vs JPG
+      if (data.length > 2 && data[0] === 0x50 && data[1] === 0x4B) {
+        finalExt = 'zip';
+      } else {
+        finalExt = 'jpg';
+      }
+      downloadName = `${baseName}_images.${finalExt}`;
+    }
+    
+    const outputPath = path.join(__dirname, 'output', `${req.file.filename}.${finalExt}`);
     fs.writeFileSync(outputPath, data);
 
     res.download(outputPath, downloadName, () => {

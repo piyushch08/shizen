@@ -47,10 +47,11 @@ export default function PdfTools() {
     const validFiles = Array.from(selectedFiles).filter(f => 
       f.type === 'application/pdf' || 
       f.name.toLowerCase().endsWith('.ppt') || 
-      f.name.toLowerCase().endsWith('.pptx')
+      f.name.toLowerCase().endsWith('.pptx') ||
+      f.type.startsWith('image/')
     );
     if (validFiles.length !== selectedFiles.length) {
-      toast.error('Only PDF and PPT/PPTX files are allowed.');
+      toast.error('Only PDF, PPT/PPTX, and Image files are allowed.');
     }
     
     const oversized = validFiles.some(f => f.size > 100 * 1024 * 1024);
@@ -173,6 +174,41 @@ export default function PdfTools() {
     }
   };
 
+  const handleImagesToPdf = async () => {
+    if (files.length === 0) return;
+    setStatus('processing');
+
+    const formData = new FormData();
+    files.forEach(f => formData.append('files', f));
+
+    try {
+      const response = await fetch(`${API_BASE}/merge`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `Server error: ${response.statusText}`);
+      }
+
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      
+      const baseName = files[0].name.substring(0, files[0].name.lastIndexOf('.')) || files[0].name;
+      const finalName = `${baseName}_converted.pdf`;
+      
+      setProcessedFile({ url: downloadUrl, name: finalName });
+      setStatus('success');
+      toast.success('Images converted to PDF successfully!');
+      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+    } catch (err) {
+      console.error(err);
+      setStatus('idle');
+      toast.error(err.message || 'An error occurred during conversion.');
+    }
+  };
+
   const handleConvert = async (targetFormat) => {
     if (files.length !== 1) {
       toast.error('Conversion requires exactly 1 file.');
@@ -242,16 +278,17 @@ export default function PdfTools() {
           ref={fileInputRef}
           onChange={(e) => handleFiles(e.target.files)}
           style={{ display: 'none' }}
-          accept=".pdf,.ppt,.pptx"
+          accept=".pdf,.ppt,.pptx,image/*"
           multiple
         />
         <div className="dropzone-icon" style={{background: '#059669'}}><Icons.Upload /></div>
-        <h2>{files.length > 0 ? 'Add more files' : 'Upload PDF or PPT'}</h2>
-        <p>Drag and drop PDF or PPT files here, or click to browse</p>
+        <h2>{files.length > 0 ? 'Add more files' : 'Upload PDF, PPT, or Images'}</h2>
+        <p>Drag and drop files here, or click to browse</p>
         <div className="supported">
           <span className="badge">Max 100MB</span>
           <span className="badge green">PDF</span>
           <span className="badge purple">PPT / PPTX</span>
+          <span className="badge blue">Images</span>
         </div>
       </div>
 
@@ -318,12 +355,23 @@ export default function PdfTools() {
                       Optimize PDF
                     </button>
                     {files.length === 1 && (
-                      <button className="btn-process" onClick={() => handleConvert('pptx')} style={{background: '#8b5cf6', flex: 1}}>
-                        Convert to PPTX
-                      </button>
+                      <>
+                        <button className="btn-process" onClick={() => handleConvert('pptx')} style={{background: '#8b5cf6', flex: 1}}>
+                          Convert to PPTX
+                        </button>
+                        <button className="btn-process" onClick={() => handleConvert('jpg')} style={{background: '#f59e0b', flex: 1}}>
+                          Convert to JPG
+                        </button>
+                      </>
                     )}
                   </div>
                 </>
+              ) : files.every(f => f.type.startsWith('image/')) ? (
+                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem' }}>
+                  <button className="btn-process" onClick={handleImagesToPdf} style={{background: '#ef4444', maxWidth: '300px'}}>
+                    Convert Images to PDF
+                  </button>
+                </div>
               ) : files.length === 1 && (files[0].name.toLowerCase().endsWith('.ppt') || files[0].name.toLowerCase().endsWith('.pptx')) ? (
                 <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem' }}>
                   <button className="btn-process" onClick={() => handleConvert('pdf')} style={{background: '#ef4444', maxWidth: '300px'}}>
@@ -332,7 +380,7 @@ export default function PdfTools() {
                 </div>
               ) : (
                 <div style={{ color: 'var(--red-600)', textAlign: 'center', marginTop: '1rem' }}>
-                  Please select only PDFs for merging/compressing, or a single PPT/PPTX file for conversion.
+                  Please select only PDFs, only Images, or a single PPT/PPTX file for processing. Mixed types should be merged in Merge Tools.
                 </div>
               )}
             </div>
