@@ -44,6 +44,7 @@ export default function ImageTools() {
   const [format, setFormat] = useState('');
   const [quality, setQuality] = useState(80);
   const [aspectRatio, setAspectRatio] = useState(null);
+  const [maintainAspectRatio, setMaintainAspectRatio] = useState(true);
 
   // Crop state
   const imgRef = useRef(null);
@@ -65,6 +66,7 @@ export default function ImageTools() {
     setFormat('');
     setQuality(80);
     setAspectRatio(null);
+    setMaintainAspectRatio(true);
     setCrop(undefined);
     setCompletedCrop(null);
   }, [previewUrl]);
@@ -163,7 +165,7 @@ export default function ImageTools() {
     if (height) formData.append('height', height);
     if (format) formData.append('format', format);
     formData.append('quality', quality);
-    formData.append('maintainAspectRatio', aspectRatio !== null ? 'true' : 'false');
+    formData.append('maintainAspectRatio', maintainAspectRatio ? 'true' : 'false');
 
     // Add actual image crop coordinates
     if (completedCrop && imgRef.current && completedCrop.width > 0 && completedCrop.height > 0) {
@@ -345,6 +347,19 @@ export default function ImageTools() {
                       </button>
                     ))}
                   </div>
+                </div>
+
+                <div className="option-group full-width" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
+                  <input
+                    type="checkbox"
+                    id="maintainAspectImg"
+                    checked={maintainAspectRatio}
+                    onChange={(e) => setMaintainAspectRatio(e.target.checked)}
+                    style={{ cursor: 'pointer', width: '1rem', height: '1rem', accentColor: '#2563eb' }}
+                  />
+                  <label htmlFor="maintainAspectImg" style={{ marginBottom: 0, cursor: 'pointer', fontWeight: 500 }}>
+                    Maintain original aspect ratio when resizing
+                  </label>
                 </div>
               </div>
 

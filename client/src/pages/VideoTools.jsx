@@ -57,6 +57,7 @@ export default function VideoTools() {
   const [format, setFormat] = useState('');
   const [videoBitrate, setVideoBitrate] = useState('1000k');
   const [aspectRatio, setAspectRatio] = useState(null);
+  const [maintainAspectRatio, setMaintainAspectRatio] = useState(true);
   
   // Trimming states
   const [startTime, setStartTime] = useState(0);
@@ -82,6 +83,7 @@ export default function VideoTools() {
     setFormat('');
     setVideoBitrate('1000k');
     setAspectRatio(null);
+    setMaintainAspectRatio(true);
     setStartTime(0);
     setEndTime(0);
     setCrop(undefined);
@@ -187,6 +189,7 @@ export default function VideoTools() {
     if (height) formData.append('height', height);
     if (format) formData.append('format', format);
     formData.append('videoBitrate', videoBitrate);
+    formData.append('maintainAspectRatio', maintainAspectRatio ? 'true' : 'false');
     
     if (startTime > 0) formData.append('startTime', startTime);
     if (endTime > 0 && endTime < videoDuration) {
@@ -417,6 +420,19 @@ export default function VideoTools() {
                       </button>
                     ))}
                   </div>
+                </div>
+
+                <div className="option-group full-width" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
+                  <input
+                    type="checkbox"
+                    id="maintainAspectVid"
+                    checked={maintainAspectRatio}
+                    onChange={(e) => setMaintainAspectRatio(e.target.checked)}
+                    style={{ cursor: 'pointer', width: '1rem', height: '1rem', accentColor: '#2563eb' }}
+                  />
+                  <label htmlFor="maintainAspectVid" style={{ marginBottom: 0, cursor: 'pointer', fontWeight: 500 }}>
+                    Maintain original aspect ratio when resizing
+                  </label>
                 </div>
               </div>
 
