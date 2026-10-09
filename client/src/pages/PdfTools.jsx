@@ -53,9 +53,9 @@ export default function PdfTools() {
       toast.error('Only PDF and PPT/PPTX files are allowed.');
     }
     
-    const oversized = validFiles.some(f => f.size > 500 * 1024 * 1024);
+    const oversized = validFiles.some(f => f.size > 100 * 1024 * 1024);
     if (oversized) {
-      toast.error('One or more files exceed the 500MB limit.');
+      toast.error('One or more files exceed the 100MB limit.');
       return;
     }
 
@@ -249,7 +249,7 @@ export default function PdfTools() {
         <h2>{files.length > 0 ? 'Add more files' : 'Upload PDF or PPT'}</h2>
         <p>Drag and drop PDF or PPT files here, or click to browse</p>
         <div className="supported">
-          <span className="badge">Max 500MB</span>
+          <span className="badge">Max 100MB</span>
           <span className="badge green">PDF</span>
           <span className="badge purple">PPT / PPTX</span>
         </div>

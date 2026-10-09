@@ -79,8 +79,8 @@ export default function ImageTools() {
 
   const handleFile = useCallback((selectedFile) => {
     if (!selectedFile) return;
-    if (selectedFile.size > 500 * 1024 * 1024) {
-        toast.error('File exceeds 500MB limit.');
+    if (selectedFile.size > 100 * 1024 * 1024) {
+        toast.error('File exceeds 100MB limit.');
         setStatus('idle');
         return;
     }
@@ -241,7 +241,7 @@ export default function ImageTools() {
           <h2>Upload Image</h2>
           <p>Drag and drop your file here, or click to browse</p>
           <div className="supported">
-            <span className="badge">Max 500MB</span>
+            <span className="badge">Max 100MB</span>
             <span className="badge accent">JPG, PNG, WebP, AVIF</span>
           </div>
         </div>

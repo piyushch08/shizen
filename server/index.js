@@ -25,7 +25,7 @@ const ilovepdf = new ILovePDFApi(
 
 const upload = multer({
   dest: 'uploads/',
-  limits: { fileSize: 500 * 1024 * 1024 } // 500 MB
+  limits: { fileSize: 100 * 1024 * 1024 } // 100 MB
 });
 
 // Ensure directories exist

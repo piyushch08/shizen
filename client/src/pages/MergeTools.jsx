@@ -42,8 +42,8 @@ export default function MergeTools() {
     
     const validFiles = [];
     for (const f of newFiles) {
-      if (totalSize + f.size > 500 * 1024 * 1024) {
-        toast.error('Total file size exceeds 500MB limit.');
+      if (totalSize + f.size > 100 * 1024 * 1024) {
+        toast.error('Total file size exceeds 100MB limit.');
         setStatus('idle');
         break;
       }
@@ -157,7 +157,7 @@ export default function MergeTools() {
         <div className="dropzone-icon" style={{background: '#8b5cf6', width: '48px', height: '48px'}}><Icons.Upload /></div>
         <h2 style={{fontSize: '1.1rem'}}>Add Files</h2>
         <div className="supported">
-          <span className="badge">Max 500MB Total</span>
+          <span className="badge">Max 100MB Total</span>
           <span className="badge" style={{background: '#8b5cf6'}}>Images & PDFs</span>
         </div>
       </div>

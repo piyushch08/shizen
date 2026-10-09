@@ -98,8 +98,8 @@ export default function VideoTools() {
 
   const handleFile = useCallback((selectedFile) => {
     if (!selectedFile) return;
-    if (selectedFile.size > 500 * 1024 * 1024) {
-        toast.error('File exceeds 500MB limit.');
+    if (selectedFile.size > 100 * 1024 * 1024) {
+        toast.error('File exceeds 100MB limit.');
         setStatus('idle');
         return;
     }
@@ -269,7 +269,7 @@ export default function VideoTools() {
           <h2>Upload Video</h2>
           <p>Drag and drop your video file here, or click to browse</p>
           <div className="supported">
-            <span className="badge">Max 500MB</span>
+            <span className="badge">Max 100MB</span>
             <span className="badge accent">MP4, WebM, AVI, MKV</span>
           </div>
         </div>
