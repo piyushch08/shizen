@@ -121,7 +121,7 @@ app.post('/api/process/image', upload.single('file'), async (req, res) => {
 app.post('/api/process/video', upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-  const { width, height, format, videoBitrate, startTime, duration, cropX, cropY, cropWidth, cropHeight } = req.body;
+  const { width, height, format, videoBitrate, startTime, duration, cropX, cropY, cropWidth, cropHeight, maintainAspectRatio } = req.body;
   const inputPath = req.file.path;
   const outFormat = format || 'mp4';
   const outputPath = path.join(__dirname, 'output', `${req.file.filename}.${outFormat}`);
@@ -142,10 +142,19 @@ app.post('/api/process/video', upload.single('file'), (req, res) => {
     videoFilters.push(`crop=${cw}:${ch}:${cx}:${cy}`);
   }
   if (width || height) {
-    // Ensure dimensions are even (divisible by 2), required by most codecs
-    const w = width ? `trunc(${parseInt(width)}/2)*2` : '-2';
-    const h = height ? `trunc(${parseInt(height)}/2)*2` : '-2';
-    videoFilters.push(`scale=${w}:${h}`);
+    const w = width ? parseInt(width) : -2;
+    const h = height ? parseInt(height) : -2;
+    
+    if (width && height && maintainAspectRatio === 'true') {
+      // Force original aspect ratio and ensure even dimensions
+      videoFilters.push(`scale=w=${w}:h=${h}:force_original_aspect_ratio=decrease`);
+      // Next filter ensures dimensions are even
+      videoFilters.push(`scale=trunc(iw/2)*2:trunc(ih/2)*2`);
+    } else {
+      const scaleW = width ? `trunc(${w}/2)*2` : '-2';
+      const scaleH = height ? `trunc(${h}/2)*2` : '-2';
+      videoFilters.push(`scale=${scaleW}:${scaleH}`);
+    }
   }
 
   if (videoFilters.length > 0) {
