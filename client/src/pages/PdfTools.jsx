@@ -44,9 +44,13 @@ export default function PdfTools() {
   const handleFiles = useCallback(async (selectedFiles) => {
     if (!selectedFiles || selectedFiles.length === 0) return;
     
-    const validFiles = Array.from(selectedFiles).filter(f => f.type === 'application/pdf');
+    const validFiles = Array.from(selectedFiles).filter(f => 
+      f.type === 'application/pdf' || 
+      f.name.toLowerCase().endsWith('.ppt') || 
+      f.name.toLowerCase().endsWith('.pptx')
+    );
     if (validFiles.length !== selectedFiles.length) {
-      toast.error('Only PDF files are allowed.');
+      toast.error('Only PDF and PPT/PPTX files are allowed.');
     }
     
     const oversized = validFiles.some(f => f.size > 500 * 1024 * 1024);
@@ -169,6 +173,45 @@ export default function PdfTools() {
     }
   };
 
+  const handleConvert = async (targetFormat) => {
+    if (files.length !== 1) {
+      toast.error('Conversion requires exactly 1 file.');
+      return;
+    }
+    setStatus('processing');
+
+    const formData = new FormData();
+    formData.append('file', files[0]);
+    formData.append('targetFormat', targetFormat);
+
+    try {
+      const response = await fetch(`${API_BASE}/convert`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `Server error: ${response.statusText}`);
+      }
+
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      
+      const baseName = files[0].name.substring(0, files[0].name.lastIndexOf('.')) || files[0].name;
+      const finalName = `${baseName}_converted.${targetFormat}`;
+      
+      setProcessedFile({ url: downloadUrl, name: finalName });
+      setStatus('success');
+      toast.success('File converted successfully!');
+      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+    } catch (err) {
+      console.error(err);
+      setStatus('idle');
+      toast.error(err.message || 'An error occurred during conversion.');
+    }
+  };
+
   return (
     <motion.div 
       className="main-card"
@@ -182,8 +225,8 @@ export default function PdfTools() {
       </Link>
       
       <div style={{textAlign: 'center', marginBottom: '2rem'}}>
-        <h2 style={{color: 'var(--blue-900)', fontSize: '1.5rem', fontWeight: 900}}>PDF Compressor & Editor</h2>
-        <p style={{color: 'var(--dark-muted)'}}>Upload PDFs to merge, rearrange, remove pages, and compress.</p>
+        <h2 style={{color: 'var(--blue-900)', fontSize: '1.5rem', fontWeight: 900}}>PDF & Presentation Tools</h2>
+        <p style={{color: 'var(--dark-muted)'}}>Merge, compress, and rearrange PDFs, or convert between PDF and PPTX.</p>
       </div>
 
       <div
@@ -199,15 +242,16 @@ export default function PdfTools() {
           ref={fileInputRef}
           onChange={(e) => handleFiles(e.target.files)}
           style={{ display: 'none' }}
-          accept="application/pdf"
+          accept=".pdf,.ppt,.pptx"
           multiple
         />
         <div className="dropzone-icon" style={{background: '#059669'}}><Icons.Upload /></div>
-        <h2>{files.length > 0 ? 'Add more PDFs' : 'Upload PDF'}</h2>
-        <p>Drag and drop PDF files here, or click to browse</p>
+        <h2>{files.length > 0 ? 'Add more files' : 'Upload PDF or PPT'}</h2>
+        <p>Drag and drop PDF or PPT files here, or click to browse</p>
         <div className="supported">
           <span className="badge">Max 500MB</span>
           <span className="badge green">PDF</span>
+          <span className="badge purple">PPT / PPTX</span>
         </div>
       </div>
 
@@ -231,46 +275,66 @@ export default function PdfTools() {
           {status === 'processing' ? (
             <div className="processing-state" style={{ marginTop: '2rem' }}>
               <div className="spinner-ring" style={{borderTopColor: '#059669'}}></div>
-              <div className="processing-label">Processing PDF...</div>
-              <p>Please wait while we optimize your document.</p>
+              <div className="processing-label">Processing file...</div>
+              <p>Please wait while we process your document.</p>
             </div>
           ) : (
             <div className="options-panel" style={{ marginTop: '1.5rem' }}>
-              
-              <div className="section-label">Page Sequence (Rearrange & Remove)</div>
-              <div className="options-grid">
-                <div className="option-group full-width">
-                  <label>Page Order (Total Pages: {totalPages > 0 ? totalPages : 'Loading...'})</label>
-                  <input
-                    type="text"
-                    className="input"
-                    placeholder={`e.g. 1, 4-5, 2`}
-                    value={pageOrder}
-                    onChange={(e) => setPageOrder(e.target.value)}
-                  />
-                  <small style={{color: 'var(--dark-muted)', marginTop: '0.35rem', display: 'block', lineHeight: '1.5'}}>
-                    <strong>Tip:</strong> Leave empty to keep all {totalPages} pages in order. <br/>
-                    Type <code>1, 3, 2</code> to rearrange. Type <code>1-5</code> for a range. Type <code>5-1</code> to reverse! 
-                  </small>
+              {files.every(f => f.type === 'application/pdf') ? (
+                <>
+                  <div className="section-label">Page Sequence (Rearrange & Remove)</div>
+                  <div className="options-grid">
+                    <div className="option-group full-width">
+                      <label>Page Order (Total Pages: {totalPages > 0 ? totalPages : 'Loading...'})</label>
+                      <input
+                        type="text"
+                        className="input"
+                        placeholder={`e.g. 1, 4-5, 2`}
+                        value={pageOrder}
+                        onChange={(e) => setPageOrder(e.target.value)}
+                      />
+                      <small style={{color: 'var(--dark-muted)', marginTop: '0.35rem', display: 'block', lineHeight: '1.5'}}>
+                        <strong>Tip:</strong> Leave empty to keep all {totalPages} pages in order. <br/>
+                        Type <code>1, 3, 2</code> to rearrange. Type <code>1-5</code> for a range. Type <code>5-1</code> to reverse! 
+                      </small>
+                    </div>
+                  </div>
+
+                  <div className="section-label">Optimization & Output</div>
+                  <div className="options-grid">
+                    <div className="option-group full-width">
+                      <p style={{ color: 'var(--dark-muted)', fontSize: '0.9rem', lineHeight: '1.6', fontWeight: '500' }}>
+                        We automatically strip unnecessary metadata to reduce file size.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="estimation-badge" style={{textAlign: 'center', marginBottom: '1.5rem', background: 'var(--blue-50)', padding: '0.75rem', borderRadius: 'var(--radius-md)', color: '#059669', fontWeight: 700}}>
+                    Estimated Compressed Size: ~{formatSize(estimatedSize)}
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '1rem' }}>
+                    <button className="btn-process" onClick={handleProcess} style={{background: '#059669', flex: 1}}>
+                      Optimize PDF
+                    </button>
+                    {files.length === 1 && (
+                      <button className="btn-process" onClick={() => handleConvert('pptx')} style={{background: '#8b5cf6', flex: 1}}>
+                        Convert to PPTX
+                      </button>
+                    )}
+                  </div>
+                </>
+              ) : files.length === 1 && (files[0].name.toLowerCase().endsWith('.ppt') || files[0].name.toLowerCase().endsWith('.pptx')) ? (
+                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem' }}>
+                  <button className="btn-process" onClick={() => handleConvert('pdf')} style={{background: '#ef4444', maxWidth: '300px'}}>
+                    Convert to PDF
+                  </button>
                 </div>
-              </div>
-
-              <div className="section-label">Optimization & Output</div>
-              <div className="options-grid">
-                <div className="option-group full-width">
-                  <p style={{ color: 'var(--dark-muted)', fontSize: '0.9rem', lineHeight: '1.6', fontWeight: '500' }}>
-                    We automatically strip unnecessary metadata to reduce file size.
-                  </p>
+              ) : (
+                <div style={{ color: 'var(--red-600)', textAlign: 'center', marginTop: '1rem' }}>
+                  Please select only PDFs for merging/compressing, or a single PPT/PPTX file for conversion.
                 </div>
-              </div>
-
-              <div className="estimation-badge" style={{textAlign: 'center', marginBottom: '1.5rem', background: 'var(--blue-50)', padding: '0.75rem', borderRadius: 'var(--radius-md)', color: '#059669', fontWeight: 700}}>
-                Estimated Compressed Size: ~{formatSize(estimatedSize)}
-              </div>
-
-              <button className="btn-process" onClick={handleProcess} style={{background: '#059669'}}>
-                Process & Download PDF
-              </button>
+              )}
             </div>
           )}
         </div>
@@ -283,14 +347,22 @@ export default function PdfTools() {
           <p>Review your optimized PDF below.</p>
           
           <div style={{ margin: '1.5rem 0', display: 'flex', justifyContent: 'center' }}>
-            <iframe src={`${processedFile.url}#view=FitH`} style={{ width: '100%', height: '500px', border: '1px solid var(--gray-200)', borderRadius: 'var(--radius-md)' }} title="PDF Preview" />
+            {processedFile.name.endsWith('.pdf') ? (
+              <iframe src={`${processedFile.url}#view=FitH`} style={{ width: '100%', height: '500px', border: '1px solid var(--gray-200)', borderRadius: 'var(--radius-md)' }} title="PDF Preview" />
+            ) : (
+              <div style={{ padding: '3rem', background: 'var(--gray-50)', border: '1px solid var(--gray-200)', borderRadius: 'var(--radius-md)', width: '100%', textAlign: 'center' }}>
+                <div style={{ fontSize: '3rem', color: '#8b5cf6', marginBottom: '1rem' }}><Icons.Document /></div>
+                <h3 style={{ marginBottom: '0.5rem' }}>{processedFile.name}</h3>
+                <p style={{ color: 'var(--dark-muted)' }}>Ready for download</p>
+              </div>
+            )}
           </div>
 
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
             <a href={processedFile.url} download={processedFile.name} className="btn-process" style={{ width: 'auto', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}>
-              <Icons.Download /> Download PDF
+              <Icons.Download /> Download File
             </a>
-            <button className="btn-new" onClick={resetAll} style={{ marginTop: 0 }}>Process Another PDF</button>
+            <button className="btn-new" onClick={resetAll} style={{ marginTop: 0 }}>Process Another File</button>
           </div>
         </div>
       )}
