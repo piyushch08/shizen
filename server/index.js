@@ -15,6 +15,14 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+require('dotenv').config();
+const ILovePDFApi = require('@ilovepdf/ilovepdf-nodejs');
+const ILovePDFFile = require('@ilovepdf/ilovepdf-nodejs/ILovePDFFile');
+const ilovepdf = new ILovePDFApi(
+  process.env.ILOVEPDF_PUBLIC_KEY || 'test_public_key',
+  process.env.ILOVEPDF_SECRET_KEY || 'test_secret_key'
+);
+
 const upload = multer({
   dest: 'uploads/',
   limits: { fileSize: 500 * 1024 * 1024 } // 500 MB
@@ -383,6 +391,46 @@ app.post('/api/process/merge', upload.array('files', 20), async (req, res) => {
     console.error('Merge processing error:', err);
     cleanup(...inputPaths, outputPath);
     res.status(500).json({ error: 'Failed to merge files: ' + err.message });
+  }
+});
+
+// ========================
+// FORMAT CONVERSION (PDF <-> PPT/PPTX)
+// ========================
+app.post('/api/process/convert', upload.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+  const { targetFormat } = req.body; // 'pdf' or 'pptx'
+  const inputPath = req.file.path;
+  const originalName = req.file.originalname;
+  const baseName = originalName.substring(0, originalName.lastIndexOf('.')) || originalName;
+  const outFormat = targetFormat === 'pdf' ? 'pdf' : 'pptx';
+  const downloadName = `${baseName}_converted.${outFormat}`;
+  const outputPath = path.join(__dirname, 'output', `${req.file.filename}.${outFormat}`);
+
+  try {
+    let task;
+    if (outFormat === 'pdf') {
+      task = ilovepdf.newTask('officepdf'); // Office to PDF
+    } else {
+      task = ilovepdf.newTask('pdfpowerpoint'); // PDF to PPTX
+    }
+
+    await task.start();
+    const iloveFile = new ILovePDFFile(inputPath);
+    await task.addFile(iloveFile);
+    await task.process();
+    const data = await task.download();
+    
+    fs.writeFileSync(outputPath, data);
+
+    res.download(outputPath, downloadName, () => {
+      cleanup(inputPath, outputPath);
+    });
+  } catch (err) {
+    console.error('ILovePDF Conversion error:', err);
+    cleanup(inputPath, outputPath);
+    res.status(500).json({ error: 'Conversion failed: ' + err.message });
   }
 });
 
