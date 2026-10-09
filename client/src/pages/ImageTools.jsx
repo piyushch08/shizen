@@ -48,6 +48,7 @@ export default function ImageTools() {
 
   // Crop state
   const imgRef = useRef(null);
+  const previewCanvasRef = useRef(null);
   const [crop, setCrop] = useState();
   const [completedCrop, setCompletedCrop] = useState(null);
   const [imageMeta, setImageMeta] = useState({ width: 0, height: 0, renderedWidth: 0, renderedHeight: 0, scaleX: 1, scaleY: 1 });
@@ -126,6 +127,101 @@ export default function ImageTools() {
       scaleY: naturalHeight / height
     });
   };
+
+  const getSourceAspect = () => {
+    if (completedCrop && completedCrop.width && completedCrop.height) {
+      return completedCrop.width / completedCrop.height;
+    }
+    if (imgRef.current) {
+      return imgRef.current.naturalWidth / imgRef.current.naturalHeight;
+    }
+    return null;
+  };
+
+  const handleWidthChange = (val) => {
+    setWidth(val);
+    if (maintainAspectRatio && val && !isNaN(val)) {
+      const sourceAspect = getSourceAspect();
+      if (sourceAspect) {
+        setHeight(Math.round(val / sourceAspect).toString());
+      }
+    }
+  };
+
+  const handleHeightChange = (val) => {
+    setHeight(val);
+    if (maintainAspectRatio && val && !isNaN(val)) {
+      const sourceAspect = getSourceAspect();
+      if (sourceAspect) {
+        setWidth(Math.round(val * sourceAspect).toString());
+      }
+    }
+  };
+
+  const handleAspectRatioChange = (label) => {
+    setAspectRatio(label);
+    const ratio = ASPECT_RATIOS.find(r => r.label === label);
+    if (ratio && ratio.w && imgRef.current) {
+      const { naturalWidth, naturalHeight, width, height } = imgRef.current;
+      const targetAspect = ratio.w / ratio.h;
+      const imgAspect = naturalWidth / naturalHeight;
+      let percentCrop = {};
+      if (imgAspect > targetAspect) {
+        // image is wider, crop width to match target aspect
+        const targetW = naturalHeight * targetAspect;
+        const percentW = (targetW / naturalWidth) * 100;
+        percentCrop = { unit: '%', width: percentW, height: 100, x: (100 - percentW) / 2, y: 0 };
+      } else {
+        // image is taller
+        const targetH = naturalWidth / targetAspect;
+        const percentH = (targetH / naturalHeight) * 100;
+        percentCrop = { unit: '%', width: 100, height: percentH, x: 0, y: (100 - percentH) / 2 };
+      }
+      setCrop(percentCrop);
+      
+      const pixelW = (percentCrop.width / 100) * width;
+      const pixelH = (percentCrop.height / 100) * height;
+      const pixelX = (percentCrop.x / 100) * width;
+      const pixelY = (percentCrop.y / 100) * height;
+      setCompletedCrop({ unit: 'px', width: pixelW, height: pixelH, x: pixelX, y: pixelY });
+    } else {
+      setCrop(undefined);
+      setCompletedCrop(null);
+    }
+  };
+
+  useEffect(() => {
+    if (!completedCrop || !completedCrop.width || !completedCrop.height || !imgRef.current || !previewCanvasRef.current) {
+      return;
+    }
+    const image = imgRef.current;
+    const canvas = previewCanvasRef.current;
+    const ctx = canvas.getContext('2d');
+    
+    // completedCrop is in pixels of the *displayed* image (imgRef.current.width)
+    const scaleX = image.naturalWidth / image.width;
+    const scaleY = image.naturalHeight / image.height;
+    
+    const cropX = completedCrop.x * scaleX;
+    const cropY = completedCrop.y * scaleY;
+    const cropW = completedCrop.width * scaleX;
+    const cropH = completedCrop.height * scaleY;
+    
+    canvas.width = cropW;
+    canvas.height = cropH;
+    
+    ctx.drawImage(
+      image,
+      cropX,
+      cropY,
+      cropW,
+      cropH,
+      0,
+      0,
+      cropW,
+      cropH
+    );
+  }, [completedCrop]);
 
   // Estimate file size
   const estimatedSize = useMemo(() => {
@@ -298,16 +394,30 @@ export default function ImageTools() {
               </div>
               
               {completedCrop && completedCrop.width > 0 && completedCrop.height > 0 && (
-                <div style={{width: '100%', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 1rem'}}>
-                  <span style={{fontSize: '0.85rem', color: 'var(--dark-muted)', fontWeight: 600}}>
-                    Crop Size: {Math.round(completedCrop.width)} x {Math.round(completedCrop.height)} px
-                  </span>
-                  <button 
-                    onClick={() => { setCrop(undefined); setCompletedCrop(null); }}
-                    style={{background: 'none', border: 'none', color: '#ef4444', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem'}}
-                  >
-                    <Icons.Trash2 /> Clear Crop
-                  </button>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '1.5rem' }}>
+                  <div className="section-label" style={{alignSelf: 'flex-start'}}>Crop Preview</div>
+                  <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--blue-100)', display: 'flex', justifyContent: 'center', width: '100%' }}>
+                    <canvas
+                      ref={previewCanvasRef}
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: '300px',
+                        borderRadius: 'var(--radius-md)',
+                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                      }}
+                    />
+                  </div>
+                  <div style={{width: '100%', marginTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 1rem'}}>
+                    <span style={{fontSize: '0.85rem', color: 'var(--dark-muted)', fontWeight: 600}}>
+                      Crop Size: {Math.round(completedCrop.width * (imageMeta.scaleX || 1))} x {Math.round(completedCrop.height * (imageMeta.scaleY || 1))} px
+                    </span>
+                    <button 
+                      onClick={() => { setCrop(undefined); setCompletedCrop(null); setAspectRatio(null); }}
+                      style={{background: 'none', border: 'none', color: '#ef4444', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem'}}
+                    >
+                      <Icons.Trash2 /> Clear Crop
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -320,7 +430,7 @@ export default function ImageTools() {
                     className="input"
                     placeholder="Auto"
                     value={width}
-                    onChange={(e) => setWidth(e.target.value)}
+                    onChange={(e) => handleWidthChange(e.target.value)}
                   />
                 </div>
                 <div className="option-group">
@@ -330,7 +440,7 @@ export default function ImageTools() {
                     className="input"
                     placeholder="Auto"
                     value={height}
-                    onChange={(e) => setHeight(e.target.value)}
+                    onChange={(e) => handleHeightChange(e.target.value)}
                   />
                 </div>
 
@@ -341,7 +451,7 @@ export default function ImageTools() {
                       <button
                         key={ratio.label}
                         className={`chip ${aspectRatio === ratio.label ? 'active' : ''}`}
-                        onClick={() => setAspectRatio(ratio.label)}
+                        onClick={() => handleAspectRatioChange(ratio.label)}
                       >
                         {ratio.label}
                       </button>

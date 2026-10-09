@@ -156,6 +156,66 @@ export default function VideoTools() {
     if (videoRef.current) videoRef.current.currentTime = val;
   };
 
+  const getSourceAspect = () => {
+    if (completedCrop && completedCrop.width && completedCrop.height) {
+      return completedCrop.width / completedCrop.height;
+    }
+    if (videoRef.current) {
+      return videoRef.current.videoWidth / videoRef.current.videoHeight;
+    }
+    return null;
+  };
+
+  const handleWidthChange = (val) => {
+    setWidth(val);
+    if (maintainAspectRatio && val && !isNaN(val)) {
+      const sourceAspect = getSourceAspect();
+      if (sourceAspect) {
+        setHeight(Math.round(val / sourceAspect).toString());
+      }
+    }
+  };
+
+  const handleHeightChange = (val) => {
+    setHeight(val);
+    if (maintainAspectRatio && val && !isNaN(val)) {
+      const sourceAspect = getSourceAspect();
+      if (sourceAspect) {
+        setWidth(Math.round(val * sourceAspect).toString());
+      }
+    }
+  };
+
+  const handleAspectRatioChange = (label) => {
+    setAspectRatio(label);
+    const ratio = ASPECT_RATIOS.find(r => r.label === label);
+    if (ratio && ratio.w && videoRef.current) {
+      const { videoWidth, videoHeight, clientWidth, clientHeight } = videoRef.current;
+      const targetAspect = ratio.w / ratio.h;
+      const vidAspect = videoWidth / videoHeight;
+      let percentCrop = {};
+      if (vidAspect > targetAspect) {
+        const targetW = videoHeight * targetAspect;
+        const percentW = (targetW / videoWidth) * 100;
+        percentCrop = { unit: '%', width: percentW, height: 100, x: (100 - percentW) / 2, y: 0 };
+      } else {
+        const targetH = videoWidth / targetAspect;
+        const percentH = (targetH / videoHeight) * 100;
+        percentCrop = { unit: '%', width: 100, height: percentH, x: 0, y: (100 - percentH) / 2 };
+      }
+      setCrop(percentCrop);
+      
+      const pixelW = (percentCrop.width / 100) * clientWidth;
+      const pixelH = (percentCrop.height / 100) * clientHeight;
+      const pixelX = (percentCrop.x / 100) * clientWidth;
+      const pixelY = (percentCrop.y / 100) * clientHeight;
+      setCompletedCrop({ unit: 'px', width: pixelW, height: pixelH, x: pixelX, y: pixelY });
+    } else {
+      setCrop(undefined);
+      setCompletedCrop(null);
+    }
+  };
+
   // Estimate file size based on bitrate and duration
   const estimatedSize = useMemo(() => {
     if (!file) return 0;
@@ -393,7 +453,7 @@ export default function VideoTools() {
                     className="input"
                     placeholder="Auto"
                     value={width}
-                    onChange={(e) => setWidth(e.target.value)}
+                    onChange={(e) => handleWidthChange(e.target.value)}
                   />
                 </div>
                 <div className="option-group">
@@ -403,7 +463,7 @@ export default function VideoTools() {
                     className="input"
                     placeholder="Auto"
                     value={height}
-                    onChange={(e) => setHeight(e.target.value)}
+                    onChange={(e) => handleHeightChange(e.target.value)}
                   />
                 </div>
 
@@ -414,7 +474,7 @@ export default function VideoTools() {
                       <button
                         key={ratio.label}
                         className={`chip ${aspectRatio === ratio.label ? 'active' : ''}`}
-                        onClick={() => setAspectRatio(ratio.label)}
+                        onClick={() => handleAspectRatioChange(ratio.label)}
                       >
                         {ratio.label}
                       </button>
