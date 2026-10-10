@@ -30,6 +30,7 @@ export default function PdfTools() {
   const dragItem = useRef(null);
   const dragOverItem = useRef(null);
   const [draggedIndex, setDraggedIndex] = useState(null);
+  const [quality, setQuality] = useState(80);
 
   const resetAll = useCallback(() => {
     if (processedFile?.url) window.URL.revokeObjectURL(processedFile.url);
@@ -38,6 +39,7 @@ export default function PdfTools() {
     setProcessedFile(null);
     setPageOrder('');
     setTotalPages(0);
+    setQuality(80);
     setDraggedIndex(null);
   }, [processedFile]);
 
@@ -155,10 +157,11 @@ export default function PdfTools() {
       requestedPages = count;
     }
 
-    // Estimate: (Total Size / Total Pages) * Requested Pages * 0.95 (metadata strip savings)
+    // Estimate: (Total Size / Total Pages) * Requested Pages * quality factor
     const avgSizePerPage = totalOriginalSize / totalPages;
-    return Math.max(1024, avgSizePerPage * requestedPages * 0.95);
-  }, [files, totalPages, pageOrder, totalOriginalSize]);
+    const factor = quality / 100;
+    return Math.max(1024, avgSizePerPage * requestedPages * (0.95 * factor));
+  }, [files, totalPages, pageOrder, totalOriginalSize, quality]);
 
   const handleProcess = async () => {
     if (files.length === 0) return;
@@ -403,6 +406,25 @@ export default function PdfTools() {
                       <p style={{ color: 'var(--dark-muted)', fontSize: '0.9rem', lineHeight: '1.6', fontWeight: '500' }}>
                         We automatically strip unnecessary metadata to reduce file size.
                       </p>
+                      
+                      <div style={{ marginTop: '1rem' }}>
+                        <label>
+                          Quality / Output Size: <span style={{color: '#059669', fontWeight: 600}}>{quality}%</span>
+                        </label>
+                        <input
+                          type="range"
+                          min="1"
+                          max="200"
+                          value={quality}
+                          onChange={(e) => setQuality(e.target.value)}
+                          style={{ width: '100%', accentColor: '#059669' }}
+                        />
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--dark-muted)', marginTop: '0.25rem' }}>
+                          <span>Small size</span>
+                          <span>Original</span>
+                          <span>High Quality</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
 

@@ -529,7 +529,7 @@ export default function ImageTools() {
                   <input
                     type="range"
                     min="1"
-                    max="100"
+                    max="200"
                     value={quality}
                     onChange={(e) => setQuality(e.target.value)}
                   />

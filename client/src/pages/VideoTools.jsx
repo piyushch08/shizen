@@ -55,7 +55,7 @@ export default function VideoTools() {
   const [width, setWidth] = useState('');
   const [height, setHeight] = useState('');
   const [format, setFormat] = useState('');
-  const [videoBitrate, setVideoBitrate] = useState('1000k');
+  const [quality, setQuality] = useState(80);
   const [aspectRatio, setAspectRatio] = useState(null);
   const [maintainAspectRatio, setMaintainAspectRatio] = useState(true);
   
@@ -81,7 +81,7 @@ export default function VideoTools() {
     setWidth('');
     setHeight('');
     setFormat('');
-    setVideoBitrate('1000k');
+    setQuality(80);
     setAspectRatio(null);
     setMaintainAspectRatio(true);
     setStartTime(0);
@@ -229,15 +229,15 @@ export default function VideoTools() {
     if (finalDuration <= 0) finalDuration = 1;
 
     // Bitrate calculation
-    const kbps = parseInt(videoBitrate.replace('k', ''));
-    const bitsPerSec = kbps * 1000;
-    const bytesPerSec = bitsPerSec / 8;
+    const originalBitrate = videoDuration > 0 ? (file.size * 8) / videoDuration : 8000000;
+    const targetBitrate = originalBitrate * (quality / 100);
+    const bytesPerSec = targetBitrate / 8;
     
     // Total video bytes + 10% overhead for audio/container
     const estimatedBytes = (finalDuration * bytesPerSec) * 1.10;
     
     return Math.max(1024, estimatedBytes); // Minimum 1KB
-  }, [file, videoDuration, endTime, startTime, videoBitrate]);
+  }, [file, videoDuration, endTime, startTime, quality]);
 
   const handleProcess = async () => {
     if (!file) return;
@@ -248,7 +248,11 @@ export default function VideoTools() {
     if (width) formData.append('width', width);
     if (height) formData.append('height', height);
     if (format) formData.append('format', format);
-    formData.append('videoBitrate', videoBitrate);
+
+    const originalBitrate = videoDuration > 0 ? (file.size * 8) / videoDuration : 8000000;
+    const targetBitrate = originalBitrate * (quality / 100);
+    const kbps = Math.max(100, Math.round(targetBitrate / 1000));
+    formData.append('videoBitrate', `${kbps}k`);
     formData.append('maintainAspectRatio', maintainAspectRatio ? 'true' : 'false');
     
     if (startTime > 0) formData.append('startTime', startTime);
@@ -508,12 +512,22 @@ export default function VideoTools() {
                   </select>
                 </div>
                 <div className="option-group">
-                  <label>Video Bitrate</label>
-                  <select className="select" value={videoBitrate} onChange={(e) => setVideoBitrate(e.target.value)}>
-                    {VIDEO_BITRATES.map((b) => (
-                      <option key={b.value} value={b.value}>{b.label}</option>
-                    ))}
-                  </select>
+                  <label>
+                    Quality / Bitrate: <span style={{color: 'var(--blue-600)', fontWeight: 600}}>{quality}%</span>
+                  </label>
+                  <input
+                    type="range"
+                    min="1"
+                    max="200"
+                    value={quality}
+                    onChange={(e) => setQuality(e.target.value)}
+                    style={{ width: '100%', accentColor: 'var(--blue-600)' }}
+                  />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--dark-muted)', marginTop: '0.25rem' }}>
+                    <span>Small size</span>
+                    <span>Original</span>
+                    <span>High Quality</span>
+                  </div>
                 </div>
               </div>
 

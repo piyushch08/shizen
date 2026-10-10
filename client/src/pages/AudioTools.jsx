@@ -42,7 +42,7 @@ export default function AudioTools() {
   const [status, setStatus] = useState('idle');
 
   const [format, setFormat] = useState('mp3');
-  const [audioBitrate, setAudioBitrate] = useState('128k');
+  const [quality, setQuality] = useState(80);
   const [enhance, setEnhance] = useState(false);
   
   // Enhancement intensity controls
@@ -66,7 +66,7 @@ export default function AudioTools() {
     setProcessedFile(null);
     setStatus('idle');
     setFormat('mp3');
-    setAudioBitrate('128k');
+    setQuality(80);
     setEnhance(false);
     setVoiceIntensity(50);
     setInstrumentsIntensity(50);
@@ -152,15 +152,15 @@ export default function AudioTools() {
     if (finalDuration <= 0) finalDuration = 1;
 
     // Bitrate calculation
-    const kbps = parseInt(audioBitrate.replace('k', ''));
-    const bitsPerSec = kbps * 1000;
-    const bytesPerSec = bitsPerSec / 8;
+    const originalBitrate = audioDuration > 0 ? (file.size * 8) / audioDuration : 128000;
+    const targetBitrate = originalBitrate * (quality / 100);
+    const bytesPerSec = targetBitrate / 8;
     
     // Total audio bytes + 2% overhead
     const estimatedBytes = (finalDuration * bytesPerSec) * 1.02;
     
     return Math.max(1024, estimatedBytes); // Minimum 1KB
-  }, [file, audioDuration, endTime, startTime, audioBitrate]);
+  }, [file, audioDuration, endTime, startTime, quality]);
 
   const handleProcess = async () => {
     if (!file) return;
@@ -169,7 +169,11 @@ export default function AudioTools() {
     const formData = new FormData();
     formData.append('file', file);
     if (format) formData.append('format', format);
-    if (audioBitrate) formData.append('audioBitrate', audioBitrate);
+
+    const originalBitrate = audioDuration > 0 ? (file.size * 8) / audioDuration : 128000;
+    const targetBitrate = originalBitrate * (quality / 100);
+    const kbps = Math.max(32, Math.round(targetBitrate / 1000));
+    formData.append('audioBitrate', `${kbps}k`);
     
     if (enhance) {
       formData.append('enhance', 'true');
@@ -343,12 +347,22 @@ export default function AudioTools() {
                   </select>
                 </div>
                 <div className="option-group">
-                  <label>Audio Bitrate</label>
-                  <select className="select" value={audioBitrate} onChange={(e) => setAudioBitrate(e.target.value)}>
-                    {AUDIO_BITRATES.map((b) => (
-                      <option key={b.value} value={b.value}>{b.label}</option>
-                    ))}
-                  </select>
+                  <label>
+                    Quality / Bitrate: <span style={{color: '#8b5cf6', fontWeight: 600}}>{quality}%</span>
+                  </label>
+                  <input
+                    type="range"
+                    min="1"
+                    max="200"
+                    value={quality}
+                    onChange={(e) => setQuality(e.target.value)}
+                    style={{ width: '100%', accentColor: '#8b5cf6' }}
+                  />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--dark-muted)', marginTop: '0.25rem' }}>
+                    <span>Small size</span>
+                    <span>Original</span>
+                    <span>High Quality</span>
+                  </div>
                 </div>
               </div>
 
