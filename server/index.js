@@ -216,7 +216,7 @@ app.post('/api/process/video', upload.single('file'), (req, res) => {
 app.post('/api/process/audio', upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-  const { format, audioBitrate, startTime, duration, enhance } = req.body;
+  const { format, audioBitrate, startTime, duration, enhance, noiseReduction, voiceClarity, volumeNormalization } = req.body;
   const inputPath = req.file.path;
   const outFormat = format || 'mp3';
   const outputPath = path.join(__dirname, 'output', `${req.file.filename}.${outFormat}`);
@@ -233,7 +233,35 @@ app.post('/api/process/audio', upload.single('file'), (req, res) => {
 
   // Audio Enhancement
   if (enhance === 'true') {
-    command = command.audioFilters('acompressor=ratio=4,loudnorm');
+    const filters = [];
+    
+    // Background noise reduction (FFT Denoiser)
+    if (noiseReduction && parseInt(noiseReduction) > 0) {
+      const nf = Math.round((parseInt(noiseReduction) / 100) * -60) - 20; // Maps 100 to -80dB, 50 to -50dB
+      filters.push(`afftdn=nf=${nf}`);
+    }
+    
+    // Voice clarity (Highpass to remove low rumble, and EQ boost for vocal frequencies)
+    if (voiceClarity && parseInt(voiceClarity) > 0) {
+      filters.push(`highpass=f=80`); // Remove low end hum
+      if (parseInt(voiceClarity) > 30) {
+        // Boost presence (around 3kHz) for clarity
+        const gain = Math.round((parseInt(voiceClarity) / 100) * 8); // Max 8dB boost
+        filters.push(`equalizer=f=3000:width_type=h:width=2000:g=${gain}`);
+      }
+    }
+    
+    // Volume Normalization
+    if (volumeNormalization && parseInt(volumeNormalization) > 0) {
+      filters.push(`acompressor=ratio=4`);
+      if (parseInt(volumeNormalization) > 50) {
+        filters.push(`loudnorm`);
+      }
+    }
+    
+    if (filters.length > 0) {
+      command = command.audioFilters(filters.join(','));
+    }
   }
 
   // Ensure no video stream is included (in case a video was uploaded for audio extraction)

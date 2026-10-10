@@ -46,9 +46,9 @@ export default function AudioTools() {
   const [enhance, setEnhance] = useState(false);
   
   // Enhancement intensity controls
-  const [voiceIntensity, setVoiceIntensity] = useState(50);
-  const [instrumentsIntensity, setInstrumentsIntensity] = useState(50);
-  const [beatsIntensity, setBeatsIntensity] = useState(50);
+  const [noiseReduction, setNoiseReduction] = useState(50);
+  const [voiceClarity, setVoiceClarity] = useState(50);
+  const [volumeNormalization, setVolumeNormalization] = useState(100);
   
   // Trimming states
   const [startTime, setStartTime] = useState(0);
@@ -68,9 +68,9 @@ export default function AudioTools() {
     setFormat('mp3');
     setQuality(80);
     setEnhance(false);
-    setVoiceIntensity(50);
-    setInstrumentsIntensity(50);
-    setBeatsIntensity(50);
+    setNoiseReduction(50);
+    setVoiceClarity(50);
+    setVolumeNormalization(100);
     setStartTime(0);
     setEndTime(0);
     setAudioDuration(0);
@@ -177,9 +177,9 @@ export default function AudioTools() {
     
     if (enhance) {
       formData.append('enhance', 'true');
-      formData.append('voiceIntensity', voiceIntensity);
-      formData.append('instrumentsIntensity', instrumentsIntensity);
-      formData.append('beatsIntensity', beatsIntensity);
+      formData.append('noiseReduction', noiseReduction);
+      formData.append('voiceClarity', voiceClarity);
+      formData.append('volumeNormalization', volumeNormalization);
     }
     
     if (startTime > 0) formData.append('startTime', startTime);
@@ -389,45 +389,45 @@ export default function AudioTools() {
                       <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
                         <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem'}}>
                           <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 600, color: 'var(--dark-muted)'}}>
-                            <span>Voice / Vocals</span>
-                            <span>{voiceIntensity}%</span>
+                            <span>Background Noise Reduction</span>
+                            <span>{noiseReduction}%</span>
                           </div>
                           <input 
                             type="range" 
                             min="0" 
                             max="100" 
-                            value={voiceIntensity} 
-                            onChange={(e) => setVoiceIntensity(e.target.value)} 
+                            value={noiseReduction} 
+                            onChange={(e) => setNoiseReduction(e.target.value)} 
                             style={{accentColor: '#8b5cf6', cursor: 'pointer'}} 
                           />
                         </div>
 
                         <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem'}}>
                           <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 600, color: 'var(--dark-muted)'}}>
-                            <span>Instruments</span>
-                            <span>{instrumentsIntensity}%</span>
+                            <span>Voice Clarity / Boost</span>
+                            <span>{voiceClarity}%</span>
                           </div>
                           <input 
                             type="range" 
                             min="0" 
                             max="100" 
-                            value={instrumentsIntensity} 
-                            onChange={(e) => setInstrumentsIntensity(e.target.value)} 
+                            value={voiceClarity} 
+                            onChange={(e) => setVoiceClarity(e.target.value)} 
                             style={{accentColor: '#8b5cf6', cursor: 'pointer'}} 
                           />
                         </div>
 
                         <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem'}}>
                           <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 600, color: 'var(--dark-muted)'}}>
-                            <span>Beats / Bass</span>
-                            <span>{beatsIntensity}%</span>
+                            <span>Volume Normalization</span>
+                            <span>{volumeNormalization}%</span>
                           </div>
                           <input 
                             type="range" 
                             min="0" 
                             max="100" 
-                            value={beatsIntensity} 
-                            onChange={(e) => setBeatsIntensity(e.target.value)} 
+                            value={volumeNormalization} 
+                            onChange={(e) => setVolumeNormalization(e.target.value)} 
                             style={{accentColor: '#8b5cf6', cursor: 'pointer'}} 
                           />
                         </div>
