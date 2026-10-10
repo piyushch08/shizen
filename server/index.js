@@ -144,7 +144,7 @@ app.post('/api/process/video', upload.single('file'), (req, res) => {
   if (width || height) {
     const w = width ? parseInt(width) : -2;
     const h = height ? parseInt(height) : -2;
-    
+
     if (width && height && maintainAspectRatio === 'true') {
       // Force original aspect ratio and ensure even dimensions
       videoFilters.push(`scale=w=${w}:h=${h}:force_original_aspect_ratio=decrease`);
@@ -287,19 +287,19 @@ app.post('/api/process/document', upload.array('files', 20), async (req, res) =>
       finalDoc = await PDFDocument.create();
       const seqStr = pageOrder.split(',').map(s => s.trim()).filter(s => s);
       const indicesToCopy = [];
-      
+
       for (const s of seqStr) {
         if (s.includes('-')) {
           const [startStr, endStr] = s.split('-');
           const start = parseInt(startStr, 10) - 1;
           const end = parseInt(endStr, 10) - 1;
           if (!isNaN(start) && !isNaN(end)) {
-             const step = start <= end ? 1 : -1;
-             for (let i = start; step === 1 ? i <= end : i >= end; i += step) {
-                if (i >= 0 && i < tempDoc.getPageCount()) {
-                  indicesToCopy.push(i);
-                }
-             }
+            const step = start <= end ? 1 : -1;
+            for (let i = start; step === 1 ? i <= end : i >= end; i += step) {
+              if (i >= 0 && i < tempDoc.getPageCount()) {
+                indicesToCopy.push(i);
+              }
+            }
           }
         } else {
           const p = parseInt(s, 10) - 1;
@@ -313,7 +313,7 @@ app.post('/api/process/document', upload.array('files', 20), async (req, res) =>
         const copiedPages = await finalDoc.copyPages(tempDoc, indicesToCopy);
         copiedPages.forEach((page) => finalDoc.addPage(page));
       } else {
-         finalDoc = tempDoc; // Fallback if invalid
+        finalDoc = tempDoc; // Fallback if invalid
       }
     } else {
       finalDoc = tempDoc; // No specific order, keep all
@@ -361,7 +361,7 @@ app.post('/api/process/merge', upload.array('files', 20), async (req, res) => {
 
     for (const file of req.files) {
       const fileBytes = fs.readFileSync(file.path);
-      
+
       if (file.mimetype === 'application/pdf') {
         const pdf = await PDFDocument.load(fileBytes, { ignoreEncryption: true });
         const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
@@ -378,7 +378,7 @@ app.post('/api/process/merge', upload.array('files', 20), async (req, res) => {
           const pngBuffer = await sharp(fileBytes).png().toBuffer();
           image = await mergedPdf.embedPng(pngBuffer);
         }
-        
+
         const dims = image.scale(1);
         const page = mergedPdf.addPage([dims.width, dims.height]);
         page.drawImage(image, {
@@ -430,7 +430,7 @@ app.post('/api/process/convert', upload.single('file'), async (req, res) => {
     await task.addFile(iloveFile);
     await task.process();
     const data = await task.download();
-    
+
     fs.writeFileSync(outputPath, data);
 
     res.download(outputPath, downloadName, () => {

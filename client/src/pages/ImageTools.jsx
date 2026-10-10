@@ -83,14 +83,14 @@ export default function ImageTools() {
   const handleFile = useCallback((selectedFile) => {
     if (!selectedFile) return;
     if (selectedFile.size > 100 * 1024 * 1024) {
-        toast.error('File exceeds 100MB limit.');
-        setStatus('idle');
-        return;
+      toast.error('File exceeds 100MB limit.');
+      setStatus('idle');
+      return;
     }
     if (!selectedFile.type.startsWith('image/')) {
-        toast.error('Please upload an image file.');
-        setStatus('idle');
-        return;
+      toast.error('Please upload an image file.');
+      setStatus('idle');
+      return;
     }
     setFile(selectedFile);
     setPreviewUrl(window.URL.createObjectURL(selectedFile));
@@ -178,7 +178,7 @@ export default function ImageTools() {
         percentCrop = { unit: '%', width: 100, height: percentH, x: 0, y: (100 - percentH) / 2 };
       }
       setCrop(percentCrop);
-      
+
       const pixelW = (percentCrop.width / 100) * width;
       const pixelH = (percentCrop.height / 100) * height;
       const pixelX = (percentCrop.x / 100) * width;
@@ -197,19 +197,19 @@ export default function ImageTools() {
     const image = imgRef.current;
     const canvas = previewCanvasRef.current;
     const ctx = canvas.getContext('2d');
-    
+
     // completedCrop is in pixels of the *displayed* image (imgRef.current.width)
     const scaleX = image.naturalWidth / image.width;
     const scaleY = image.naturalHeight / image.height;
-    
+
     const cropX = completedCrop.x * scaleX;
     const cropY = completedCrop.y * scaleY;
     const cropW = completedCrop.width * scaleX;
     const cropH = completedCrop.height * scaleY;
-    
+
     canvas.width = cropW;
     canvas.height = cropH;
-    
+
     ctx.drawImage(
       image,
       cropX,
@@ -226,10 +226,10 @@ export default function ImageTools() {
   // Estimate file size
   const estimatedSize = useMemo(() => {
     if (!file) return 0;
-    
+
     // Heuristic estimation
     let factor = (quality / 100);
-    
+
     // Crop reduction factor
     let cropFactor = 1;
     if (completedCrop && completedCrop.width > 0 && completedCrop.height > 0) {
@@ -238,7 +238,7 @@ export default function ImageTools() {
       const fullArea = (imageMeta.renderedWidth || 1) * (imageMeta.renderedHeight || 1);
       cropFactor = Math.min(1, cropArea / fullArea);
     }
-    
+
     // Resize reduction factor
     let resizeFactor = 1;
     if (width && imageMeta.width > 0) {
@@ -267,7 +267,7 @@ export default function ImageTools() {
     if (completedCrop && imgRef.current && completedCrop.width > 0 && completedCrop.height > 0) {
       const scaleX = imgRef.current.naturalWidth / imgRef.current.width;
       const scaleY = imgRef.current.naturalHeight / imgRef.current.height;
-      
+
       formData.append('cropX', Math.round(completedCrop.x * scaleX));
       formData.append('cropY', Math.round(completedCrop.y * scaleY));
       formData.append('cropWidth', Math.round(completedCrop.width * scaleX));
@@ -287,11 +287,11 @@ export default function ImageTools() {
 
       const blob = await response.blob();
       const downloadUrl = window.URL.createObjectURL(blob);
-      
+
       const outExt = format || file.name.split('.').pop();
       const baseName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
       const finalName = `${baseName}_optimized.${outExt}`;
-      
+
       setProcessedFile({ url: downloadUrl, name: finalName });
       setStatus('success');
       toast.success('Image processed successfully!');
@@ -304,7 +304,7 @@ export default function ImageTools() {
   };
 
   return (
-    <motion.div 
+    <motion.div
       className="main-card"
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
@@ -314,10 +314,10 @@ export default function ImageTools() {
       <Link to="/" className="btn-back">
         <Icons.ArrowLeft /> Back to Dashboard
       </Link>
-      
-      <div style={{textAlign: 'center', marginBottom: '2rem'}}>
-        <h2 style={{color: 'var(--blue-900)', fontSize: '1.5rem', fontWeight: 900}}>Image Compressor & Resizer</h2>
-        <p style={{color: 'var(--dark-muted)'}}>Upload an image to visually crop, resize, or change its format.</p>
+
+      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+        <h2 style={{ color: 'var(--blue-900)', fontSize: '1.5rem', fontWeight: 900 }}>Image Compressor & Resizer</h2>
+        <p style={{ color: 'var(--dark-muted)' }}>Upload an image to visually crop, resize, or change its format.</p>
       </div>
 
       {!file && (
@@ -347,7 +347,7 @@ export default function ImageTools() {
 
       {file && status !== 'success' && (
         <div className="file-config-section">
-          
+
           <div className="file-bar">
             <div className="file-bar-icon image"><Icons.Image /></div>
             <div className="file-bar-info">
@@ -367,35 +367,35 @@ export default function ImageTools() {
             </div>
           ) : (
             <div className="options-panel">
-              
+
               <div className="section-label">Visual Cropping</div>
-              <div className="visual-editor-container" style={{background: '#f8fafc', padding: '1rem', borderRadius: 'var(--radius-lg)', marginBottom: '1.5rem', display: 'flex', justifyContent: 'center', overflow: 'hidden'}}>
+              <div className="visual-editor-container" style={{ background: '#f8fafc', padding: '1rem', borderRadius: 'var(--radius-lg)', marginBottom: '1.5rem', display: 'flex', justifyContent: 'center', overflow: 'hidden' }}>
                 {previewUrl && (() => {
                   const currentRatio = ASPECT_RATIOS.find(r => r.label === aspectRatio);
                   const aspectValue = currentRatio && currentRatio.w ? currentRatio.w / currentRatio.h : undefined;
-                  
+
                   return (
-                  <ReactCrop 
-                    crop={crop} 
-                    onChange={(_, percentCrop) => setCrop(percentCrop)}
-                    onComplete={(c) => setCompletedCrop(c)}
-                    aspect={aspectValue}
-                  >
-                      <img 
+                    <ReactCrop
+                      crop={crop}
+                      onChange={(_, percentCrop) => setCrop(percentCrop)}
+                      onComplete={(c) => setCompletedCrop(c)}
+                      aspect={aspectValue}
+                    >
+                      <img
                         ref={imgRef}
-                        src={previewUrl} 
+                        src={previewUrl}
                         onLoad={onImageLoad}
-                        alt="Upload preview" 
+                        alt="Upload preview"
                         style={{ width: '100%', height: 'auto', maxHeight: '400px', display: 'block' }}
                       />
-                  </ReactCrop>
+                    </ReactCrop>
                   );
                 })()}
               </div>
-              
+
               {completedCrop && completedCrop.width > 0 && completedCrop.height > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '1.5rem' }}>
-                  <div className="section-label" style={{alignSelf: 'flex-start'}}>Crop Preview</div>
+                  <div className="section-label" style={{ alignSelf: 'flex-start' }}>Crop Preview</div>
                   <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--blue-100)', display: 'flex', justifyContent: 'center', width: '100%' }}>
                     <canvas
                       ref={previewCanvasRef}
@@ -407,13 +407,13 @@ export default function ImageTools() {
                       }}
                     />
                   </div>
-                  <div style={{width: '100%', marginTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 1rem'}}>
-                    <span style={{fontSize: '0.85rem', color: 'var(--dark-muted)', fontWeight: 600}}>
+                  <div style={{ width: '100%', marginTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 1rem' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--dark-muted)', fontWeight: 600 }}>
                       Crop Size: {Math.round(completedCrop.width * (imageMeta.scaleX || 1))} x {Math.round(completedCrop.height * (imageMeta.scaleY || 1))} px
                     </span>
-                    <button 
+                    <button
                       onClick={() => { setCrop(undefined); setCompletedCrop(null); setAspectRatio(null); }}
-                      style={{background: 'none', border: 'none', color: '#ef4444', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem'}}
+                      style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}
                     >
                       <Icons.Trash2 /> Clear Crop
                     </button>
@@ -484,7 +484,7 @@ export default function ImageTools() {
                     ))}
                   </select>
                 </div>
-                
+
                 <div className="range-group">
                   <div className="range-header">
                     <label>Quality (Compression)</label>
@@ -500,7 +500,7 @@ export default function ImageTools() {
                 </div>
               </div>
 
-              <div className="estimation-badge" style={{textAlign: 'center', marginBottom: '1rem', background: 'var(--blue-50)', padding: '0.75rem', borderRadius: 'var(--radius-md)', color: 'var(--blue-900)', fontWeight: 700}}>
+              <div className="estimation-badge" style={{ textAlign: 'center', marginBottom: '1rem', background: 'var(--blue-50)', padding: '0.75rem', borderRadius: 'var(--radius-md)', color: 'var(--blue-900)', fontWeight: 700 }}>
                 Estimated Output Size: ~{formatSize(estimatedSize)}
               </div>
 
@@ -517,7 +517,7 @@ export default function ImageTools() {
           <div className="success-icon"><Icons.Check /></div>
           <h3>Processing Complete!</h3>
           <p>Review your optimized image below.</p>
-          
+
           <div style={{ margin: '1.5rem 0', display: 'flex', justifyContent: 'center' }}>
             <img src={processedFile.url} alt="Processed" style={{ maxWidth: '100%', maxHeight: '400px', borderRadius: 'var(--radius-md)' }} />
           </div>

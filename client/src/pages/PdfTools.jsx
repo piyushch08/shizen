@@ -43,16 +43,16 @@ export default function PdfTools() {
 
   const handleFiles = useCallback(async (selectedFiles) => {
     if (!selectedFiles || selectedFiles.length === 0) return;
-    
-    const validFiles = Array.from(selectedFiles).filter(f => 
-      f.type === 'application/pdf' || 
-      f.name.toLowerCase().endsWith('.ppt') || 
+
+    const validFiles = Array.from(selectedFiles).filter(f =>
+      f.type === 'application/pdf' ||
+      f.name.toLowerCase().endsWith('.ppt') ||
       f.name.toLowerCase().endsWith('.pptx')
     );
     if (validFiles.length !== selectedFiles.length) {
       toast.error('Only PDF and PPT/PPTX files are allowed.');
     }
-    
+
     const oversized = validFiles.some(f => f.size > 100 * 1024 * 1024);
     if (oversized) {
       toast.error('One or more files exceed the 100MB limit.');
@@ -108,9 +108,9 @@ export default function PdfTools() {
 
   const estimatedSize = useMemo(() => {
     if (files.length === 0 || totalPages === 0) return 0;
-    
+
     let requestedPages = totalPages;
-    
+
     if (pageOrder.trim()) {
       const seqStr = pageOrder.split(',').map(s => s.trim()).filter(s => s);
       let count = 0;
@@ -131,7 +131,7 @@ export default function PdfTools() {
       }
       requestedPages = count;
     }
-    
+
     // Estimate: (Total Size / Total Pages) * Requested Pages * 0.95 (metadata strip savings)
     const avgSizePerPage = totalOriginalSize / totalPages;
     return Math.max(1024, avgSizePerPage * requestedPages * 0.95);
@@ -158,10 +158,10 @@ export default function PdfTools() {
 
       const blob = await response.blob();
       const downloadUrl = window.URL.createObjectURL(blob);
-      
+
       const baseName = files[0].name.substring(0, files[0].name.lastIndexOf('.')) || files[0].name;
       const finalName = `${baseName}_optimized.pdf`;
-      
+
       setProcessedFile({ url: downloadUrl, name: finalName });
       setStatus('success');
       toast.success('PDF processed successfully!');
@@ -197,10 +197,10 @@ export default function PdfTools() {
 
       const blob = await response.blob();
       const downloadUrl = window.URL.createObjectURL(blob);
-      
+
       const baseName = files[0].name.substring(0, files[0].name.lastIndexOf('.')) || files[0].name;
       const finalName = `${baseName}_converted.${targetFormat}`;
-      
+
       setProcessedFile({ url: downloadUrl, name: finalName });
       setStatus('success');
       toast.success('File converted successfully!');
@@ -213,7 +213,7 @@ export default function PdfTools() {
   };
 
   return (
-    <motion.div 
+    <motion.div
       className="main-card"
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
@@ -223,10 +223,10 @@ export default function PdfTools() {
       <Link to="/" className="btn-back">
         <Icons.ArrowLeft /> Back to Dashboard
       </Link>
-      
-      <div style={{textAlign: 'center', marginBottom: '2rem'}}>
-        <h2 style={{color: 'var(--blue-900)', fontSize: '1.5rem', fontWeight: 900}}>PDF & Presentation Tools</h2>
-        <p style={{color: 'var(--dark-muted)'}}>Merge, compress, and rearrange PDFs, or convert between PDF and PPTX.</p>
+
+      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+        <h2 style={{ color: 'var(--blue-900)', fontSize: '1.5rem', fontWeight: 900 }}>PDF & Presentation Tools</h2>
+        <p style={{ color: 'var(--dark-muted)' }}>Merge, compress, and rearrange PDFs, or convert between PDF and PPTX.</p>
       </div>
 
       <div
@@ -245,7 +245,7 @@ export default function PdfTools() {
           accept=".pdf,.ppt,.pptx"
           multiple
         />
-        <div className="dropzone-icon" style={{background: '#059669'}}><Icons.Upload /></div>
+        <div className="dropzone-icon" style={{ background: '#059669' }}><Icons.Upload /></div>
         <h2>{files.length > 0 ? 'Add more files' : 'Upload PDF or PPT'}</h2>
         <p>Drag and drop PDF or PPT files here, or click to browse</p>
         <div className="supported">
@@ -257,7 +257,7 @@ export default function PdfTools() {
 
       {files.length > 0 && status !== 'success' && (
         <div className="file-config-section">
-          
+
           <div className="section-label">Selected Files</div>
           {files.map((f, idx) => (
             <div className="file-bar" key={idx} style={{ marginBottom: '0.5rem', padding: '0.75rem 1rem' }}>
@@ -274,7 +274,7 @@ export default function PdfTools() {
 
           {status === 'processing' ? (
             <div className="processing-state" style={{ marginTop: '2rem' }}>
-              <div className="spinner-ring" style={{borderTopColor: '#059669'}}></div>
+              <div className="spinner-ring" style={{ borderTopColor: '#059669' }}></div>
               <div className="processing-label">Processing file...</div>
               <p>Please wait while we process your document.</p>
             </div>
@@ -293,9 +293,9 @@ export default function PdfTools() {
                         value={pageOrder}
                         onChange={(e) => setPageOrder(e.target.value)}
                       />
-                      <small style={{color: 'var(--dark-muted)', marginTop: '0.35rem', display: 'block', lineHeight: '1.5'}}>
-                        <strong>Tip:</strong> Leave empty to keep all {totalPages} pages in order. <br/>
-                        Type <code>1, 3, 2</code> to rearrange. Type <code>1-5</code> for a range. Type <code>5-1</code> to reverse! 
+                      <small style={{ color: 'var(--dark-muted)', marginTop: '0.35rem', display: 'block', lineHeight: '1.5' }}>
+                        <strong>Tip:</strong> Leave empty to keep all {totalPages} pages in order. <br />
+                        Type <code>1, 3, 2</code> to rearrange. Type <code>1-5</code> for a range. Type <code>5-1</code> to reverse!
                       </small>
                     </div>
                   </div>
@@ -309,16 +309,16 @@ export default function PdfTools() {
                     </div>
                   </div>
 
-                  <div className="estimation-badge" style={{textAlign: 'center', marginBottom: '1.5rem', background: 'var(--blue-50)', padding: '0.75rem', borderRadius: 'var(--radius-md)', color: '#059669', fontWeight: 700}}>
+                  <div className="estimation-badge" style={{ textAlign: 'center', marginBottom: '1.5rem', background: 'var(--blue-50)', padding: '0.75rem', borderRadius: 'var(--radius-md)', color: '#059669', fontWeight: 700 }}>
                     Estimated Compressed Size: ~{formatSize(estimatedSize)}
                   </div>
 
                   <div style={{ display: 'flex', gap: '1rem' }}>
-                    <button className="btn-process" onClick={handleProcess} style={{background: '#059669', flex: 1}}>
+                    <button className="btn-process" onClick={handleProcess} style={{ background: '#059669', flex: 1 }}>
                       Optimize PDF
                     </button>
                     {files.length === 1 && (
-                      <button className="btn-process" onClick={() => handleConvert('pptx')} style={{background: '#8b5cf6', flex: 1}}>
+                      <button className="btn-process" onClick={() => handleConvert('pptx')} style={{ background: '#8b5cf6', flex: 1 }}>
                         Convert to PPTX
                       </button>
                     )}
@@ -326,7 +326,7 @@ export default function PdfTools() {
                 </>
               ) : files.length === 1 && (files[0].name.toLowerCase().endsWith('.ppt') || files[0].name.toLowerCase().endsWith('.pptx')) ? (
                 <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem' }}>
-                  <button className="btn-process" onClick={() => handleConvert('pdf')} style={{background: '#ef4444', maxWidth: '300px'}}>
+                  <button className="btn-process" onClick={() => handleConvert('pdf')} style={{ background: '#ef4444', maxWidth: '300px' }}>
                     Convert to PDF
                   </button>
                 </div>
@@ -345,7 +345,7 @@ export default function PdfTools() {
           <div className="success-icon"><Icons.Check /></div>
           <h3>Processing Complete!</h3>
           <p>Review your optimized PDF below.</p>
-          
+
           <div style={{ margin: '1.5rem 0', display: 'flex', justifyContent: 'center' }}>
             {processedFile.name.endsWith('.pdf') ? (
               <iframe src={`${processedFile.url}#view=FitH`} style={{ width: '100%', height: '500px', border: '1px solid var(--gray-200)', borderRadius: 'var(--radius-md)' }} title="PDF Preview" />

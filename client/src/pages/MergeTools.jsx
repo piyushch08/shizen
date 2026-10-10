@@ -36,10 +36,10 @@ export default function MergeTools() {
 
   const handleFiles = useCallback((selectedFiles) => {
     if (!selectedFiles || selectedFiles.length === 0) return;
-    
+
     let totalSize = files.reduce((acc, f) => acc + f.size, 0);
     const newFiles = Array.from(selectedFiles);
-    
+
     const validFiles = [];
     for (const f of newFiles) {
       if (totalSize + f.size > 100 * 1024 * 1024) {
@@ -89,7 +89,7 @@ export default function MergeTools() {
       setStatus('idle');
       return;
     }
-    
+
     setStatus('processing');
 
     const formData = new FormData();
@@ -109,7 +109,7 @@ export default function MergeTools() {
       const blob = await response.blob();
       const downloadUrl = window.URL.createObjectURL(blob);
       const finalName = `merged_document.pdf`;
-      
+
       setProcessedFile({ url: downloadUrl, name: finalName });
       setStatus('success');
       toast.success('Files merged successfully!');
@@ -122,7 +122,7 @@ export default function MergeTools() {
   };
 
   return (
-    <motion.div 
+    <motion.div
       className="main-card"
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
@@ -132,10 +132,10 @@ export default function MergeTools() {
       <Link to="/" className="btn-back">
         <Icons.ArrowLeft /> Back to Dashboard
       </Link>
-      
-      <div style={{textAlign: 'center', marginBottom: '2rem'}}>
-        <h2 style={{color: 'var(--blue-900)', fontSize: '1.5rem', fontWeight: 900}}>Merge Images & PDFs</h2>
-        <p style={{color: 'var(--dark-muted)'}}>Combine multiple images or PDFs into a single PDF document.</p>
+
+      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+        <h2 style={{ color: 'var(--blue-900)', fontSize: '1.5rem', fontWeight: 900 }}>Merge Images & PDFs</h2>
+        <p style={{ color: 'var(--dark-muted)' }}>Combine multiple images or PDFs into a single PDF document.</p>
       </div>
 
       <div
@@ -154,25 +154,25 @@ export default function MergeTools() {
           accept="image/*,application/pdf"
           multiple
         />
-        <div className="dropzone-icon" style={{background: '#8b5cf6', width: '48px', height: '48px'}}><Icons.Upload /></div>
-        <h2 style={{fontSize: '1.1rem'}}>Add Files</h2>
+        <div className="dropzone-icon" style={{ background: '#8b5cf6', width: '48px', height: '48px' }}><Icons.Upload /></div>
+        <h2 style={{ fontSize: '1.1rem' }}>Add Files</h2>
         <div className="supported">
           <span className="badge">Max 100MB Total</span>
-          <span className="badge" style={{background: '#8b5cf6'}}>Images & PDFs</span>
+          <span className="badge" style={{ background: '#8b5cf6' }}>Images & PDFs</span>
         </div>
       </div>
 
       {files.length > 0 && status !== 'success' && (
         <div className="file-config-section">
           <div className="section-label">Selected Files ({files.length})</div>
-          <div className="files-list" style={{display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.5rem'}}>
+          <div className="files-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.5rem' }}>
             {files.map((file, idx) => (
-              <div key={idx} className="file-bar" style={{marginBottom: 0, padding: '0.5rem 1rem'}}>
-                <div className={`file-bar-icon ${file.type.startsWith('image') ? 'image' : 'document'}`} style={{width: '32px', height: '32px'}}>
+              <div key={idx} className="file-bar" style={{ marginBottom: 0, padding: '0.5rem 1rem' }}>
+                <div className={`file-bar-icon ${file.type.startsWith('image') ? 'image' : 'document'}`} style={{ width: '32px', height: '32px' }}>
                   {file.type.startsWith('image') ? <Icons.Image /> : <Icons.Document />}
                 </div>
                 <div className="file-bar-info">
-                  <div className="file-bar-name" style={{fontSize: '0.9rem'}}>{file.name}</div>
+                  <div className="file-bar-name" style={{ fontSize: '0.9rem' }}>{file.name}</div>
                   <div className="file-bar-meta">{formatSize(file.size)}</div>
                 </div>
                 <button className="file-bar-remove" onClick={() => removeFile(idx)} title="Remove file">
@@ -184,12 +184,12 @@ export default function MergeTools() {
 
           {status === 'processing' ? (
             <div className="processing-state">
-              <div className="spinner-ring" style={{borderTopColor: '#8b5cf6'}}></div>
+              <div className="spinner-ring" style={{ borderTopColor: '#8b5cf6' }}></div>
               <div className="processing-label">Merging Files...</div>
               <p>Please wait while we combine your files.</p>
             </div>
           ) : (
-            <button className="btn-process" onClick={handleProcess} style={{background: '#8b5cf6'}}>
+            <button className="btn-process" onClick={handleProcess} style={{ background: '#8b5cf6' }}>
               Merge into PDF
             </button>
           )}
@@ -201,7 +201,7 @@ export default function MergeTools() {
           <div className="success-icon"><Icons.Check /></div>
           <h3>Merging Complete!</h3>
           <p>Review your merged PDF below.</p>
-          
+
           <div style={{ margin: '1.5rem 0', display: 'flex', justifyContent: 'center' }}>
             <iframe src={`${processedFile.url}#view=FitH`} style={{ width: '100%', height: '500px', border: '1px solid var(--gray-200)', borderRadius: 'var(--radius-md)' }} title="PDF Preview" />
           </div>
