@@ -303,6 +303,42 @@ export default function ImageTools() {
     }
   };
 
+  const handleConvertToPdf = async () => {
+    if (!file) return;
+    setStatus('processing');
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('targetFormat', 'imagepdf');
+
+    try {
+      const response = await fetch(`${API_BASE}/convert`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `Server error: ${response.statusText}`);
+      }
+
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+
+      const baseName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+      const finalName = `${baseName}_converted.pdf`;
+
+      setProcessedFile({ url: downloadUrl, name: finalName });
+      setStatus('success');
+      toast.success('Image converted to PDF successfully!');
+      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+    } catch (err) {
+      console.error(err);
+      setStatus('idle');
+      toast.error(err.message || 'An error occurred during conversion.');
+    }
+  };
+
   return (
     <motion.div
       className="main-card"
@@ -504,9 +540,14 @@ export default function ImageTools() {
                 Estimated Output Size: ~{formatSize(estimatedSize)}
               </div>
 
-              <button className="btn-process" onClick={handleProcess}>
-                Compress Image
-              </button>
+              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                <button className="btn-process" onClick={handleProcess} style={{ flex: 1 }}>
+                  Compress Image
+                </button>
+                <button className="btn-process" onClick={handleConvertToPdf} style={{ background: '#ef4444', flex: 1 }}>
+                  Convert to PDF
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -516,10 +557,14 @@ export default function ImageTools() {
         <div className="success-state">
           <div className="success-icon"><Icons.Check /></div>
           <h3>Processing Complete!</h3>
-          <p>Review your optimized image below.</p>
+          <p>Review your optimized file below.</p>
 
           <div style={{ margin: '1.5rem 0', display: 'flex', justifyContent: 'center' }}>
-            <img src={processedFile.url} alt="Processed" style={{ maxWidth: '100%', maxHeight: '400px', borderRadius: 'var(--radius-md)' }} />
+            {processedFile.name.endsWith('.pdf') ? (
+              <iframe src={`${processedFile.url}#view=FitH`} style={{ width: '100%', height: '500px', border: '1px solid var(--gray-200)', borderRadius: 'var(--radius-md)' }} title="PDF Preview" />
+            ) : (
+              <img src={processedFile.url} alt="Processed" style={{ maxWidth: '100%', maxHeight: '400px', borderRadius: 'var(--radius-md)' }} />
+            )}
           </div>
 
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>

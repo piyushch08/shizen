@@ -56,14 +56,25 @@ app.post('/api/process/image', upload.single('file'), async (req, res) => {
 
   try {
     let pipeline = sharp(inputPath);
+    const metadata = await pipeline.metadata();
 
     // Crop if provided
     if (cropWidth && cropHeight) {
+      const cx = parseInt(cropX || 0);
+      const cy = parseInt(cropY || 0);
+      const cw = parseInt(cropWidth);
+      const ch = parseInt(cropHeight);
+      
+      const safeX = Math.max(0, Math.min(cx, metadata.width - 1));
+      const safeY = Math.max(0, Math.min(cy, metadata.height - 1));
+      const safeW = Math.max(1, Math.min(cw, metadata.width - safeX));
+      const safeH = Math.max(1, Math.min(ch, metadata.height - safeY));
+
       pipeline = pipeline.extract({
-        left: parseInt(cropX || 0),
-        top: parseInt(cropY || 0),
-        width: parseInt(cropWidth),
-        height: parseInt(cropHeight)
+        left: safeX,
+        top: safeY,
+        width: safeW,
+        height: safeH
       });
     }
 
@@ -404,23 +415,28 @@ app.post('/api/process/merge', upload.array('files', 20), async (req, res) => {
 });
 
 // ========================
-// FORMAT CONVERSION (PDF <-> PPT/PPTX)
+// FORMAT CONVERSION (PDF <-> PPT/PPTX, PDF -> JPG, Image -> PDF)
 // ========================
 app.post('/api/process/convert', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-  const { targetFormat } = req.body; // 'pdf' or 'pptx'
+  const { targetFormat } = req.body; // 'pdf', 'pptx', 'jpg', or 'imagepdf'
   const inputPath = req.file.path;
   const originalName = req.file.originalname;
   const baseName = originalName.substring(0, originalName.lastIndexOf('.')) || originalName;
-  const outFormat = targetFormat === 'pdf' ? 'pdf' : 'pptx';
-  const downloadName = `${baseName}_converted.${outFormat}`;
+  
+  const outFormat = (targetFormat === 'pdf' || targetFormat === 'imagepdf') ? 'pdf' : (targetFormat === 'jpg' ? 'zip' : 'pptx');
+  const downloadName = targetFormat === 'jpg' ? `${baseName}_images.zip` : `${baseName}_converted.${outFormat}`;
   const outputPath = path.join(__dirname, 'output', `${req.file.filename}.${outFormat}`);
 
   try {
     let task;
-    if (outFormat === 'pdf') {
+    if (targetFormat === 'pdf') {
       task = ilovepdf.newTask('officepdf'); // Office to PDF
+    } else if (targetFormat === 'imagepdf') {
+      task = ilovepdf.newTask('imagepdf'); // Image to PDF
+    } else if (targetFormat === 'jpg') {
+      task = ilovepdf.newTask('pdfjpg'); // PDF to JPG
     } else {
       task = ilovepdf.newTask('pdfpowerpoint'); // PDF to PPTX
     }

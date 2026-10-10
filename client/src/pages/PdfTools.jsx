@@ -26,6 +26,11 @@ export default function PdfTools() {
 
   const fileInputRef = useRef(null);
 
+  // Drag-to-reorder refs
+  const dragItem = useRef(null);
+  const dragOverItem = useRef(null);
+  const [draggedIndex, setDraggedIndex] = useState(null);
+
   const resetAll = useCallback(() => {
     if (processedFile?.url) window.URL.revokeObjectURL(processedFile.url);
     setFiles([]);
@@ -33,6 +38,7 @@ export default function PdfTools() {
     setProcessedFile(null);
     setPageOrder('');
     setTotalPages(0);
+    setDraggedIndex(null);
   }, [processedFile]);
 
   useEffect(() => {
@@ -71,12 +77,14 @@ export default function PdfTools() {
     const calcPages = async () => {
       let count = 0;
       for (const file of files) {
-        try {
-          const arrayBuffer = await file.arrayBuffer();
-          const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
-          count += pdfDoc.getPageCount();
-        } catch (e) {
-          console.error("Error reading PDF page count:", e);
+        if (file.type === 'application/pdf') {
+          try {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+            count += pdfDoc.getPageCount();
+          } catch (e) {
+            console.error("Error reading PDF page count:", e);
+          }
         }
       }
       setTotalPages(count);
@@ -102,6 +110,21 @@ export default function PdfTools() {
 
   const removeFile = (index) => {
     setFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Drag-to-reorder handler
+  const handleSort = () => {
+    if (dragItem.current === null || dragOverItem.current === null) {
+      setDraggedIndex(null);
+      return;
+    }
+    const _files = [...files];
+    const draggedItemContent = _files.splice(dragItem.current, 1)[0];
+    _files.splice(dragOverItem.current, 0, draggedItemContent);
+    dragItem.current = null;
+    dragOverItem.current = null;
+    setDraggedIndex(null);
+    setFiles(_files);
   };
 
   const totalOriginalSize = useMemo(() => files.reduce((acc, f) => acc + f.size, 0), [files]);
@@ -212,6 +235,54 @@ export default function PdfTools() {
     }
   };
 
+  const handleConvertToJpg = async () => {
+    if (files.length !== 1 || files[0].type !== 'application/pdf') {
+      toast.error('Please upload exactly 1 PDF file to convert to JPG.');
+      return;
+    }
+    setStatus('processing');
+
+    const formData = new FormData();
+    formData.append('file', files[0]);
+    formData.append('targetFormat', 'jpg');
+
+    try {
+      const response = await fetch(`${API_BASE}/convert`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `Server error: ${response.statusText}`);
+      }
+
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+
+      const baseName = files[0].name.substring(0, files[0].name.lastIndexOf('.')) || files[0].name;
+
+      // Check if it's a ZIP (multi-page) or single JPG
+      const bytes = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
+      const isZip = bytes[0] === 0x50 && bytes[1] === 0x4B;
+      const finalName = isZip ? `${baseName}_images.zip` : `${baseName}_converted.jpg`;
+
+      setProcessedFile({ url: downloadUrl, name: finalName });
+      setStatus('success');
+      toast.success('PDF converted to JPG successfully!');
+      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+    } catch (err) {
+      console.error(err);
+      setStatus('idle');
+      toast.error(err.message || 'An error occurred during conversion.');
+    }
+  };
+
+  // Check what types of files are uploaded
+  const allPdfs = files.length > 0 && files.every(f => f.type === 'application/pdf');
+  const singlePpt = files.length === 1 && (files[0].name.toLowerCase().endsWith('.ppt') || files[0].name.toLowerCase().endsWith('.pptx'));
+  const singlePdf = files.length === 1 && files[0].type === 'application/pdf';
+
   return (
     <motion.div
       className="main-card"
@@ -226,7 +297,7 @@ export default function PdfTools() {
 
       <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
         <h2 style={{ color: 'var(--blue-900)', fontSize: '1.5rem', fontWeight: 900 }}>PDF & Presentation Tools</h2>
-        <p style={{ color: 'var(--dark-muted)' }}>Merge, compress, and rearrange PDFs, or convert between PDF and PPTX.</p>
+        <p style={{ color: 'var(--dark-muted)' }}>Merge, compress, rearrange PDFs, or convert between PDF, PPTX & JPG.</p>
       </div>
 
       <div
@@ -258,15 +329,41 @@ export default function PdfTools() {
       {files.length > 0 && status !== 'success' && (
         <div className="file-config-section">
 
-          <div className="section-label">Selected Files</div>
+          <div className="section-label">Selected Files — Drag ⠿ to Reorder</div>
           {files.map((f, idx) => (
-            <div className="file-bar" key={idx} style={{ marginBottom: '0.5rem', padding: '0.75rem 1rem' }}>
+            <div
+              className={`file-bar${draggedIndex === idx ? ' dragging' : ''}`}
+              key={`${f.name}-${f.size}-${idx}`}
+              draggable
+              onDragStart={(e) => {
+                dragItem.current = idx;
+                setDraggedIndex(idx);
+                if (e.dataTransfer) e.dataTransfer.setData('text/plain', '');
+              }}
+              onDragEnter={(e) => {
+                e.preventDefault();
+                dragOverItem.current = idx;
+              }}
+              onDragEnd={handleSort}
+              onDragOver={(e) => e.preventDefault()}
+              style={{
+                marginBottom: '0.5rem',
+                padding: '0.75rem 1rem',
+                cursor: 'grab',
+                opacity: draggedIndex === idx ? 0.4 : 1,
+                transition: 'opacity 0.2s, transform 0.15s',
+                border: draggedIndex === idx ? '2px dashed #059669' : undefined,
+              }}
+            >
+              <div style={{ marginRight: '10px', color: '#059669', display: 'flex', alignItems: 'center', cursor: 'grab', fontSize: '1.3rem', userSelect: 'none' }} title="Drag to reorder">
+                ⠿
+              </div>
               <div className="file-bar-icon document" style={{ width: '36px', height: '36px' }}><Icons.Document /></div>
               <div className="file-bar-info">
                 <div className="file-bar-name">{f.name}</div>
                 <div className="file-bar-meta">{formatSize(f.size)}</div>
               </div>
-              <button className="file-bar-remove" onClick={() => removeFile(idx)} title="Remove file">
+              <button className="file-bar-remove" onClick={(e) => { e.stopPropagation(); removeFile(idx); }} title="Remove file">
                 <Icons.Trash2 />
               </button>
             </div>
@@ -280,7 +377,7 @@ export default function PdfTools() {
             </div>
           ) : (
             <div className="options-panel" style={{ marginTop: '1.5rem' }}>
-              {files.every(f => f.type === 'application/pdf') ? (
+              {allPdfs ? (
                 <>
                   <div className="section-label">Page Sequence (Rearrange & Remove)</div>
                   <div className="options-grid">
@@ -313,18 +410,23 @@ export default function PdfTools() {
                     Estimated Compressed Size: ~{formatSize(estimatedSize)}
                   </div>
 
-                  <div style={{ display: 'flex', gap: '1rem' }}>
+                  <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                     <button className="btn-process" onClick={handleProcess} style={{ background: '#059669', flex: 1 }}>
                       Optimize PDF
                     </button>
-                    {files.length === 1 && (
-                      <button className="btn-process" onClick={() => handleConvert('pptx')} style={{ background: '#8b5cf6', flex: 1 }}>
-                        Convert to PPTX
-                      </button>
+                    {singlePdf && (
+                      <>
+                        <button className="btn-process" onClick={() => handleConvert('pptx')} style={{ background: '#8b5cf6', flex: 1 }}>
+                          Convert to PPTX
+                        </button>
+                        <button className="btn-process" onClick={handleConvertToJpg} style={{ background: '#f59e0b', flex: 1 }}>
+                          Convert to JPG
+                        </button>
+                      </>
                     )}
                   </div>
                 </>
-              ) : files.length === 1 && (files[0].name.toLowerCase().endsWith('.ppt') || files[0].name.toLowerCase().endsWith('.pptx')) ? (
+              ) : singlePpt ? (
                 <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem' }}>
                   <button className="btn-process" onClick={() => handleConvert('pdf')} style={{ background: '#ef4444', maxWidth: '300px' }}>
                     Convert to PDF
@@ -344,11 +446,13 @@ export default function PdfTools() {
         <div className="success-state">
           <div className="success-icon"><Icons.Check /></div>
           <h3>Processing Complete!</h3>
-          <p>Review your optimized PDF below.</p>
+          <p>Review your file below.</p>
 
           <div style={{ margin: '1.5rem 0', display: 'flex', justifyContent: 'center' }}>
             {processedFile.name.endsWith('.pdf') ? (
               <iframe src={`${processedFile.url}#view=FitH`} style={{ width: '100%', height: '500px', border: '1px solid var(--gray-200)', borderRadius: 'var(--radius-md)' }} title="PDF Preview" />
+            ) : processedFile.name.endsWith('.jpg') || processedFile.name.endsWith('.jpeg') ? (
+              <img src={processedFile.url} alt="Converted" style={{ maxWidth: '100%', maxHeight: '500px', borderRadius: 'var(--radius-md)' }} />
             ) : (
               <div style={{ padding: '3rem', background: 'var(--gray-50)', border: '1px solid var(--gray-200)', borderRadius: 'var(--radius-md)', width: '100%', textAlign: 'center' }}>
                 <div style={{ fontSize: '3rem', color: '#8b5cf6', marginBottom: '1rem' }}><Icons.Document /></div>

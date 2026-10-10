@@ -21,11 +21,17 @@ export default function MergeTools() {
 
   const fileInputRef = useRef(null);
 
+  // Drag-to-reorder refs
+  const dragItem = useRef(null);
+  const dragOverItem = useRef(null);
+  const [draggedIndex, setDraggedIndex] = useState(null);
+
   const resetAll = useCallback(() => {
     if (processedFile?.url) window.URL.revokeObjectURL(processedFile.url);
     setFiles([]);
     setStatus('idle');
     setProcessedFile(null);
+    setDraggedIndex(null);
   }, [processedFile]);
 
   useEffect(() => {
@@ -82,6 +88,20 @@ export default function MergeTools() {
     setIsDragging(false);
     handleFiles(e.dataTransfer.files);
   }, [handleFiles]);
+
+  const handleSort = () => {
+    if (dragItem.current === null || dragOverItem.current === null) {
+      setDraggedIndex(null);
+      return;
+    }
+    const _files = [...files];
+    const draggedItemContent = _files.splice(dragItem.current, 1)[0];
+    _files.splice(dragOverItem.current, 0, draggedItemContent);
+    dragItem.current = null;
+    dragOverItem.current = null;
+    setDraggedIndex(null);
+    setFiles(_files);
+  };
 
   const handleProcess = async () => {
     if (files.length < 2) {
@@ -164,10 +184,36 @@ export default function MergeTools() {
 
       {files.length > 0 && status !== 'success' && (
         <div className="file-config-section">
-          <div className="section-label">Selected Files ({files.length})</div>
+          <div className="section-label">Selected Files — Drag ⠿ to Reorder ({files.length})</div>
           <div className="files-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.5rem' }}>
             {files.map((file, idx) => (
-              <div key={idx} className="file-bar" style={{ marginBottom: 0, padding: '0.5rem 1rem' }}>
+              <div 
+                key={`${file.name}-${idx}`} 
+                className={`file-bar${draggedIndex === idx ? ' dragging' : ''}`}
+                draggable
+                onDragStart={(e) => {
+                  dragItem.current = idx;
+                  setDraggedIndex(idx);
+                  if (e.dataTransfer) e.dataTransfer.setData('text/plain', '');
+                }}
+                onDragEnter={(e) => {
+                  e.preventDefault();
+                  dragOverItem.current = idx;
+                }}
+                onDragEnd={handleSort}
+                onDragOver={(e) => e.preventDefault()}
+                style={{ 
+                  marginBottom: 0, 
+                  padding: '0.5rem 1rem',
+                  cursor: 'grab',
+                  opacity: draggedIndex === idx ? 0.4 : 1,
+                  transition: 'opacity 0.2s, transform 0.15s',
+                  border: draggedIndex === idx ? '2px dashed #8b5cf6' : undefined,
+                }}
+              >
+                <div style={{ marginRight: '10px', color: '#8b5cf6', display: 'flex', alignItems: 'center', cursor: 'grab', fontSize: '1.3rem', userSelect: 'none' }} title="Drag to reorder">
+                  ⠿
+                </div>
                 <div className={`file-bar-icon ${file.type.startsWith('image') ? 'image' : 'document'}`} style={{ width: '32px', height: '32px' }}>
                   {file.type.startsWith('image') ? <Icons.Image /> : <Icons.Document />}
                 </div>
@@ -175,7 +221,7 @@ export default function MergeTools() {
                   <div className="file-bar-name" style={{ fontSize: '0.9rem' }}>{file.name}</div>
                   <div className="file-bar-meta">{formatSize(file.size)}</div>
                 </div>
-                <button className="file-bar-remove" onClick={() => removeFile(idx)} title="Remove file">
+                <button className="file-bar-remove" onClick={(e) => { e.stopPropagation(); removeFile(idx); }} title="Remove file">
                   <Icons.Trash2 />
                 </button>
               </div>
