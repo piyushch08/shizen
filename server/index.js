@@ -106,11 +106,25 @@ app.post('/api/process/image', upload.single('file'), async (req, res) => {
       case 'avif':
         pipeline = pipeline.avif({ quality: q });
         break;
+      case 'pdf':
+        // Fallback handled below
+        break;
       default:
         pipeline = pipeline.jpeg({ quality: q });
     }
 
-    await pipeline.toFile(outputPath);
+    if (outFormat === 'pdf') {
+      const imgBuffer = await pipeline.jpeg({ quality: q, mozjpeg: true }).toBuffer();
+      const metadataFinal = await sharp(imgBuffer).metadata();
+      const pdfDoc = await PDFDocument.create();
+      const page = pdfDoc.addPage([metadataFinal.width, metadataFinal.height]);
+      const imageEmbed = await pdfDoc.embedJpg(imgBuffer);
+      page.drawImage(imageEmbed, { x: 0, y: 0, width: metadataFinal.width, height: metadataFinal.height });
+      const pdfBytes = await pdfDoc.save();
+      fs.writeFileSync(outputPath, pdfBytes);
+    } else {
+      await pipeline.toFile(outputPath);
+    }
 
     const originalName = req.file.originalname;
     const baseName = originalName.substring(0, originalName.lastIndexOf('.')) || originalName;

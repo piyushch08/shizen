@@ -23,6 +23,7 @@ const IMAGE_FORMATS = [
   { value: 'png', label: 'PNG' },
   { value: 'webp', label: 'WebP' },
   { value: 'avif', label: 'AVIF' },
+  { value: 'pdf', label: 'PDF' },
 ];
 
 function formatSize(bytes) {
