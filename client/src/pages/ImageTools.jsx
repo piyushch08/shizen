@@ -6,8 +6,7 @@ import 'react-image-crop/dist/ReactCrop.css';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import confetti from 'canvas-confetti';
-
-const API_BASE = 'http://localhost:3001/api/process';
+import { apiProcess } from '../utils/apiService';
 
 const ASPECT_RATIOS = [
   { label: 'Free', value: null },
@@ -276,15 +275,7 @@ export default function ImageTools() {
     }
 
     try {
-      const response = await fetch(`${API_BASE}/image`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error || `Server error: ${response.statusText}`);
-      }
+      const response = await apiProcess('/image', formData);
 
       const blob = await response.blob();
       const downloadUrl = window.URL.createObjectURL(blob);
@@ -313,15 +304,7 @@ export default function ImageTools() {
     formData.append('targetFormat', 'imagepdf');
 
     try {
-      const response = await fetch(`${API_BASE}/convert`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error || `Server error: ${response.statusText}`);
-      }
+      const response = await apiProcess('/convert', formData);
 
       const blob = await response.blob();
       const downloadUrl = window.URL.createObjectURL(blob);

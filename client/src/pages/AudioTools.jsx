@@ -4,8 +4,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import confetti from 'canvas-confetti';
-
-const API_BASE = 'http://localhost:3001/api/process';
+import { apiProcess } from '../utils/apiService';
 
 const AUDIO_FORMATS = [
   { value: 'mp3', label: 'MP3' },
@@ -124,6 +123,39 @@ export default function AudioTools() {
     };
   }, [previewUrl, processedFile]);
 
+  const applyPreset = useCallback((preset) => {
+    setActivePreset(preset.id);
+    setEnhance(true);
+    setNoiseReduction(preset.settings.noiseReduction);
+    setVoiceClarity(preset.settings.voiceClarity);
+    setVolumeNormalization(preset.settings.volumeNormalization);
+    setDeEsser(preset.settings.deEsser);
+    setBassCut(preset.settings.bassCut);
+    toast.success(`Applied ${preset.name} preset`);
+  }, []);
+
+  const getDenoiseLabel = (val) => {
+    if (val === 0) return 'Bypassed';
+    if (val <= 30) return 'Light Hiss Filter';
+    if (val <= 70) return 'Smart Gate + Spectral FFT';
+    return 'Aggressive Noise Suppression';
+  };
+
+  const getClarityLabel = (val) => {
+    if (val === 0) return 'Natural';
+    if (val <= 35) return 'Sub-bass Cut';
+    if (val <= 70) return 'Vocal Presence Boost';
+    return 'Studio Speech Articulation';
+  };
+
+  const getNormLabel = (val) => {
+    if (val === 0) return 'Bypassed';
+    if (val <= 40) return 'Peak Compression';
+    if (val <= 65) return 'Balanced Dynamics';
+    return 'EBU R128 Broadcast (-16 LUFS)';
+  };
+
+
   const handleFile = useCallback((selectedFile) => {
     if (!selectedFile) return;
     if (selectedFile.size > 100 * 1024 * 1024) {
@@ -231,15 +263,7 @@ export default function AudioTools() {
     }
 
     try {
-      const response = await fetch(`${API_BASE}/audio`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error || `Server error: ${response.statusText}`);
-      }
+      const response = await apiProcess('/audio', formData);
 
       const blob = await response.blob();
       const downloadUrl = window.URL.createObjectURL(blob);
@@ -409,75 +433,208 @@ export default function AudioTools() {
                 </div>
               </div>
 
-              <div className="section-label">Enhancements</div>
-              <div className="options-grid">
-                <div className="option-group full-width" style={{background: '#f8fafc', padding: '1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--blue-100)'}}>
-                  <label style={{display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', margin: 0}}>
-                    <input 
-                      type="checkbox" 
-                      checked={enhance} 
-                      onChange={(e) => setEnhance(e.target.checked)} 
-                      style={{width: '20px', height: '20px', accentColor: '#8b5cf6'}}
-                    />
-                    <div style={{display: 'flex', flexDirection: 'column'}}>
-                      <span style={{fontSize: '1rem', fontWeight: 800, color: 'var(--blue-900)'}}>Enhance Audio Quality</span>
-                      <span style={{fontSize: '0.85rem', fontWeight: 500, color: 'var(--dark-muted)'}}>Normalizes volume, boosts vocals, and balances harsh peaks.</span>
+              <div className="section-label" style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+                <span>Audio Enhancement Suite</span>
+                {enhance && (
+                  <span style={{fontSize: '0.75rem', color: '#8b5cf6', background: '#f5f3ff', padding: '0.2rem 0.6rem', borderRadius: 'var(--radius-pill)', fontWeight: 700}}>
+                    Studio Processing Active
+                  </span>
+                )}
+              </div>
+
+              <div className="audio-enhancement-card" style={{marginBottom: '1.5rem'}}>
+                <label style={{display: 'flex', alignItems: 'flex-start', gap: '0.85rem', cursor: 'pointer', margin: 0}}>
+                  <input 
+                    type="checkbox" 
+                    checked={enhance} 
+                    onChange={(e) => {
+                      setEnhance(e.target.checked);
+                      if (e.target.checked && (!activePreset || activePreset === 'custom')) {
+                        applyPreset(ENHANCE_PRESETS[0]);
+                      }
+                    }} 
+                    style={{width: '22px', height: '22px', accentColor: '#8b5cf6', cursor: 'pointer', marginTop: '2px'}}
+                  />
+                  <div style={{display: 'flex', flexDirection: 'column'}}>
+                    <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap'}}>
+                      <span style={{fontSize: '1.05rem', fontWeight: 800, color: 'var(--blue-900)'}}>Enable Intelligent Audio Enhancer</span>
+                      <span className="badge" style={{background: '#8b5cf6', fontSize: '0.7rem', padding: '0.15rem 0.5rem'}}>Next-Gen DSP</span>
                     </div>
-                  </label>
-                  
-                  {enhance && (
-                    <div style={{marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--gray-200)'}}>
-                      <h4 style={{fontSize: '0.95rem', fontWeight: 700, color: 'var(--blue-900)', marginBottom: '1rem'}}>Adjust Intensity</h4>
-                      
-                      <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
-                        <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem'}}>
-                          <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 600, color: 'var(--dark-muted)'}}>
-                            <span>Background Noise Reduction</span>
-                            <span>{noiseReduction}%</span>
-                          </div>
-                          <input 
-                            type="range" 
-                            min="0" 
-                            max="100" 
-                            value={noiseReduction} 
-                            onChange={(e) => setNoiseReduction(e.target.value)} 
-                            style={{accentColor: '#8b5cf6', cursor: 'pointer'}} 
-                          />
-                        </div>
+                    <span style={{fontSize: '0.85rem', fontWeight: 500, color: 'var(--dark-muted)', marginTop: '0.2rem'}}>
+                      Dual-stage background denoiser (Adaptive Gate + FFT), vocal clarity equalizer, de-esser, and broadcast loudness normalization.
+                    </span>
+                  </div>
+                </label>
+                
+                {enhance && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    style={{marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--blue-100)'}}
+                  >
+                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.5rem'}}>
+                      <h4 style={{fontSize: '0.95rem', fontWeight: 700, color: 'var(--blue-900)'}}>Presets</h4>
+                      <span style={{fontSize: '0.8rem', color: 'var(--dark-muted)'}}>
+                        Selected: <strong style={{color: '#8b5cf6'}}>{activePreset === 'custom' ? 'Custom' : ENHANCE_PRESETS.find(p => p.id === activePreset)?.name || 'Custom'}</strong>
+                      </span>
+                    </div>
 
-                        <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem'}}>
-                          <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 600, color: 'var(--dark-muted)'}}>
-                            <span>Voice Clarity / Boost</span>
-                            <span>{voiceClarity}%</span>
-                          </div>
-                          <input 
-                            type="range" 
-                            min="0" 
-                            max="100" 
-                            value={voiceClarity} 
-                            onChange={(e) => setVoiceClarity(e.target.value)} 
-                            style={{accentColor: '#8b5cf6', cursor: 'pointer'}} 
-                          />
-                        </div>
+                    <div className="preset-pills-grid">
+                      {ENHANCE_PRESETS.map((preset) => {
+                        const IconComp = Icons[preset.icon] || Icons.Music;
+                        const isCurrent = activePreset === preset.id;
+                        return (
+                          <button
+                            key={preset.id}
+                            type="button"
+                            className={`preset-pill-btn ${isCurrent ? 'active' : ''}`}
+                            onClick={() => applyPreset(preset)}
+                          >
+                            <div className="preset-pill-header">
+                              <IconComp />
+                              <span>{preset.name}</span>
+                              {preset.badge && (
+                                <span style={{
+                                  fontSize: '0.65rem',
+                                  padding: '0.15rem 0.4rem',
+                                  borderRadius: '4px',
+                                  background: isCurrent ? '#ede9fe' : '#f1f5f9',
+                                  color: isCurrent ? '#6d28d9' : '#64748b',
+                                  marginLeft: 'auto',
+                                  fontWeight: 700
+                                }}>
+                                  {preset.badge}
+                                </span>
+                              )}
+                            </div>
+                            <div className="preset-pill-desc">{preset.desc}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
 
-                        <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem'}}>
-                          <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 600, color: 'var(--dark-muted)'}}>
-                            <span>Volume Normalization</span>
-                            <span>{volumeNormalization}%</span>
-                          </div>
-                          <input 
-                            type="range" 
-                            min="0" 
-                            max="100" 
-                            value={volumeNormalization} 
-                            onChange={(e) => setVolumeNormalization(e.target.value)} 
-                            style={{accentColor: '#8b5cf6', cursor: 'pointer'}} 
-                          />
+                    <h4 style={{fontSize: '0.95rem', fontWeight: 700, color: 'var(--blue-900)', marginBottom: '0.75rem'}}>Fine-Tune Intensity</h4>
+
+                    <div className="enhance-intensity-card">
+                      <div className="enhance-slider-header">
+                        <div className="enhance-slider-title">
+                          <Icons.Volume2 /> Background Noise Reduction
+                        </div>
+                        <div className="enhance-slider-badge">
+                          {noiseReduction}% &bull; {getDenoiseLabel(noiseReduction)}
                         </div>
                       </div>
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="100" 
+                        value={noiseReduction} 
+                        onChange={(e) => {
+                          setNoiseReduction(Number(e.target.value));
+                          setActivePreset('custom');
+                        }} 
+                        style={{width: '100%', accentColor: '#8b5cf6', cursor: 'pointer'}} 
+                      />
+                      <div className="enhance-slider-desc">
+                        Adaptive noise gate completely silences room noise during pauses, and spectral FFT removes continuous fan/AC whine.
+                      </div>
                     </div>
-                  )}
-                </div>
+
+                    <div className="enhance-intensity-card">
+                      <div className="enhance-slider-header">
+                        <div className="enhance-slider-title">
+                          <Icons.Mic /> Voice Clarity & Intelligibility
+                        </div>
+                        <div className="enhance-slider-badge">
+                          {voiceClarity}% &bull; {getClarityLabel(voiceClarity)}
+                        </div>
+                      </div>
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="100" 
+                        value={voiceClarity} 
+                        onChange={(e) => {
+                          setVoiceClarity(Number(e.target.value));
+                          setActivePreset('custom');
+                        }} 
+                        style={{width: '100%', accentColor: '#8b5cf6', cursor: 'pointer'}} 
+                      />
+                      <div className="enhance-slider-desc">
+                        Boosts vocal presence (+9dB at 3.2kHz) and crispness (8.5kHz) while scooping out muddy room boxiness.
+                      </div>
+                    </div>
+
+                    <div className="enhance-intensity-card">
+                      <div className="enhance-slider-header">
+                        <div className="enhance-slider-title">
+                          <Icons.Sliders /> Volume Normalization & Dynamics
+                        </div>
+                        <div className="enhance-slider-badge">
+                          {volumeNormalization}% &bull; {getNormLabel(volumeNormalization)}
+                        </div>
+                      </div>
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="100" 
+                        value={volumeNormalization} 
+                        onChange={(e) => {
+                          setVolumeNormalization(Number(e.target.value));
+                          setActivePreset('custom');
+                        }} 
+                        style={{width: '100%', accentColor: '#8b5cf6', cursor: 'pointer'}} 
+                      />
+                      <div className="enhance-slider-desc">
+                        Smooths sudden volume spikes with dynamic compression and aligns audio to comfortable EBU R128 loudness.
+                      </div>
+                    </div>
+
+                    <h4 style={{fontSize: '0.95rem', fontWeight: 700, color: 'var(--blue-900)', marginTop: '1.25rem', marginBottom: '0.5rem'}}>
+                      Advanced Cleaners
+                    </h4>
+                    
+                    <div className="toggle-features-grid">
+                      <label className="toggle-feature-pill">
+                        <input 
+                          type="checkbox"
+                          checked={deEsser}
+                          onChange={(e) => {
+                            setDeEsser(e.target.checked);
+                            setActivePreset('custom');
+                          }}
+                          style={{width: '18px', height: '18px', accentColor: '#8b5cf6', marginTop: '2px', cursor: 'pointer'}}
+                        />
+                        <div>
+                          <div style={{fontWeight: 700, fontSize: '0.88rem', color: 'var(--blue-900)'}}>De-Esser (Sibilance Control)</div>
+                          <div style={{fontSize: '0.75rem', color: 'var(--dark-muted)', lineHeight: 1.3}}>
+                            Softens piercing 'S' and 'Sh' sounds to eliminate listener ear fatigue.
+                          </div>
+                        </div>
+                      </label>
+
+                      <label className="toggle-feature-pill">
+                        <input 
+                          type="checkbox"
+                          checked={bassCut}
+                          onChange={(e) => {
+                            setBassCut(e.target.checked);
+                            setActivePreset('custom');
+                          }}
+                          style={{width: '18px', height: '18px', accentColor: '#8b5cf6', marginTop: '2px', cursor: 'pointer'}}
+                        />
+                        <div>
+                          <div style={{fontWeight: 700, fontSize: '0.88rem', color: 'var(--blue-900)'}}>Low Rumble Filter (&lt;120Hz)</div>
+                          <div style={{fontSize: '0.75rem', color: 'var(--dark-muted)', lineHeight: 1.3}}>
+                            Eliminates mic thumps, air handling rumble, and desk vibrations.
+                          </div>
+                        </div>
+                      </label>
+                    </div>
+
+                  </motion.div>
+                )}
               </div>
 
               <div className="estimation-badge" style={{textAlign: 'center', marginBottom: '1rem', background: '#f5f3ff', padding: '0.75rem', borderRadius: 'var(--radius-md)', color: '#6d28d9', fontWeight: 700}}>

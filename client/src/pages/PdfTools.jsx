@@ -5,8 +5,7 @@ import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import confetti from 'canvas-confetti';
 import { PDFDocument } from 'pdf-lib';
-
-const API_BASE = 'http://localhost:3001/api/process';
+import { apiProcess } from '../utils/apiService';
 
 function formatSize(bytes) {
   if (bytes < 1024) return bytes + ' B';
@@ -172,15 +171,7 @@ export default function PdfTools() {
     if (pageOrder) formData.append('pageOrder', pageOrder);
 
     try {
-      const response = await fetch(`${API_BASE}/document`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error || `Server error: ${response.statusText}`);
-      }
+      const response = await apiProcess('/document', formData);
 
       const blob = await response.blob();
       const downloadUrl = window.URL.createObjectURL(blob);
@@ -211,15 +202,7 @@ export default function PdfTools() {
     formData.append('targetFormat', targetFormat);
 
     try {
-      const response = await fetch(`${API_BASE}/convert`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error || `Server error: ${response.statusText}`);
-      }
+      const response = await apiProcess('/convert', formData);
 
       const blob = await response.blob();
       const downloadUrl = window.URL.createObjectURL(blob);
@@ -250,15 +233,7 @@ export default function PdfTools() {
     formData.append('targetFormat', 'jpg');
 
     try {
-      const response = await fetch(`${API_BASE}/convert`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error || `Server error: ${response.statusText}`);
-      }
+      const response = await apiProcess('/convert', formData);
 
       const blob = await response.blob();
       const downloadUrl = window.URL.createObjectURL(blob);

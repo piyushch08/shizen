@@ -4,8 +4,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import confetti from 'canvas-confetti';
-
-const API_BASE = 'http://localhost:3001/api/process';
+import { apiProcess } from '../utils/apiService';
 
 function formatSize(bytes) {
   if (bytes < 1024) return bytes + ' B';
@@ -116,15 +115,7 @@ export default function MergeTools() {
     files.forEach(f => formData.append('files', f));
 
     try {
-      const response = await fetch(`${API_BASE}/merge`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error || `Server error: ${response.statusText}`);
-      }
+      const response = await apiProcess('/merge', formData);
 
       const blob = await response.blob();
       const downloadUrl = window.URL.createObjectURL(blob);

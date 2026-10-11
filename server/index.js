@@ -554,6 +554,17 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Global error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Global server error:', err);
+  if (err instanceof multer.MulterError) {
+    return res.status(400).json({ error: `File upload error: ${err.message}` });
+  }
+  if (!res.headersSent) {
+    res.status(500).json({ error: err.message || 'Internal server error occurred during processing.' });
+  }
+});
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server listening on http://localhost:${PORT}`);

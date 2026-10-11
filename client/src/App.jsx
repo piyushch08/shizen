@@ -1,8 +1,9 @@
-import { useState, lazy, Suspense } from 'react';
+import { useState, lazy, Suspense, useEffect } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { Toaster } from 'react-hot-toast';
 import { Icons } from './utils/Icons';
+import { checkServerHealth } from './utils/apiService';
 
 import confetti from 'canvas-confetti';
 
@@ -22,6 +23,23 @@ const PageLoader = () => (
 
 function App() {
   const location = useLocation();
+  // Server health state
+  const [serverOnline, setServerOnline] = useState(true);
+  const [checkingServer, setCheckingServer] = useState(false);
+
+  const verifyBackend = async () => {
+    setCheckingServer(true);
+    const isUp = await checkServerHealth();
+    setServerOnline(isUp);
+    setCheckingServer(false);
+  };
+
+  useEffect(() => {
+    verifyBackend();
+    const interval = setInterval(verifyBackend, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Bug report state
   const [showBugModal, setShowBugModal] = useState(false);
   const [bugName, setBugName] = useState('');
@@ -39,6 +57,54 @@ function App() {
         <h1 className="app-title">SHIZEN - Compress & Convert</h1>
         <p className="app-subtitle">Premium file compression, conversion, and editing</p>
       </header>
+
+      {!serverOnline && (
+        <div style={{
+          background: '#fee2e2',
+          border: '1px solid #ef4444',
+          borderRadius: '14px',
+          padding: '0.85rem 1.25rem',
+          margin: '0 auto 1.5rem',
+          maxWidth: '700px',
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          color: '#991b1b',
+          fontSize: '0.9rem',
+          fontWeight: 600,
+          boxShadow: '0 4px 14px rgba(239, 68, 68, 0.15)',
+          gap: '1rem',
+          flexWrap: 'wrap'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <span style={{ display: 'inline-flex', width: '20px', height: '20px', color: '#ef4444' }}>
+              <Icons.AlertCircle />
+            </span>
+            <span>
+              <strong>Backend Disconnected:</strong> Processing server is offline on port 3001.
+            </span>
+          </div>
+          <button 
+            type="button"
+            onClick={verifyBackend} 
+            disabled={checkingServer}
+            style={{
+              background: '#ef4444',
+              color: '#ffffff',
+              border: 'none',
+              padding: '0.4rem 0.9rem',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 700,
+              fontSize: '0.8rem',
+              marginLeft: 'auto'
+            }}
+          >
+            {checkingServer ? 'Checking...' : 'Retry Connection'}
+          </button>
+        </div>
+      )}
 
       <AnimatePresence mode="wait">
         <Suspense fallback={<PageLoader />}>

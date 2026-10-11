@@ -1,0 +1,12 @@
+{
+  "name": "shizen-compress-app",
+  "version": "1.0.0",
+  "description": "File compression, conversion, and editing platform",
+  "scripts": {
+    "dev:client": "npm run dev --prefix client",
+    "dev:server": "npm run start --prefix server",
+    "server": "npm run start --prefix server",
+    "client": "npm run dev --prefix client",
+    "build": "npm run build --prefix client"
+  }
+}
