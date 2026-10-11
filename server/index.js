@@ -64,7 +64,7 @@ app.post('/api/process/image', upload.single('file'), async (req, res) => {
       const cy = parseInt(cropY || 0);
       const cw = parseInt(cropWidth);
       const ch = parseInt(cropHeight);
-      
+
       const safeX = Math.max(0, Math.min(cx, metadata.width - 1));
       const safeY = Math.max(0, Math.min(cy, metadata.height - 1));
       const safeW = Math.max(1, Math.min(cw, metadata.width - safeX));
@@ -514,7 +514,7 @@ app.post('/api/process/convert', upload.single('file'), async (req, res) => {
   const inputPath = req.file.path;
   const originalName = req.file.originalname;
   const baseName = originalName.substring(0, originalName.lastIndexOf('.')) || originalName;
-  
+
   const outFormat = (targetFormat === 'pdf' || targetFormat === 'imagepdf') ? 'pdf' : (targetFormat === 'jpg' ? 'zip' : 'pptx');
   const downloadName = targetFormat === 'jpg' ? `${baseName}_images.zip` : `${baseName}_converted.${outFormat}`;
   const outputPath = path.join(__dirname, 'output', `${req.file.filename}.${outFormat}`);
