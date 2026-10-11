@@ -230,7 +230,7 @@ app.post('/api/process/video', upload.single('file'), (req, res) => {
 app.post('/api/process/audio', upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-  const { format, audioBitrate, startTime, duration, enhance, noiseReduction, voiceClarity, volumeNormalization } = req.body;
+  const { format, audioBitrate, startTime, duration, enhance, noiseReduction, voiceClarity, volumeNormalization, deEsser, bassCut } = req.body;
   const inputPath = req.file.path;
   const outFormat = format || 'mp3';
   const outputPath = path.join(__dirname, 'output', `${req.file.filename}.${outFormat}`);
@@ -246,33 +246,81 @@ app.post('/api/process/audio', upload.single('file'), (req, res) => {
   }
 
   // Audio Enhancement
-  if (enhance === 'true') {
+  if (enhance === 'true' || enhance === true) {
     const filters = [];
-    
-    // Background noise reduction (FFT Denoiser)
-    if (noiseReduction && parseInt(noiseReduction) > 0) {
-      const nf = Math.round((parseInt(noiseReduction) / 100) * -60) - 20; // Maps 100 to -80dB, 50 to -50dB
-      filters.push(`afftdn=nf=${nf}`);
+    const nRed = parseInt(noiseReduction) || 0;
+    const vClar = parseInt(voiceClarity) || 0;
+    const vNorm = parseInt(volumeNormalization) || 0;
+    const isDeEss = deEsser === 'true' || deEsser === true;
+    const isBassCut = bassCut === 'true' || bassCut === true;
+
+    // 1. Low-end Rumble / Handling Noise Filter
+    if (isBassCut || vClar > 0) {
+      const hpFreq = isBassCut ? 120 : Math.round(60 + (vClar / 100) * 80); // 60Hz to 140Hz
+      filters.push(`highpass=f=${hpFreq}`);
     }
-    
-    // Voice clarity (Highpass to remove low rumble, and EQ boost for vocal frequencies)
-    if (voiceClarity && parseInt(voiceClarity) > 0) {
-      filters.push(`highpass=f=80`); // Remove low end hum
-      if (parseInt(voiceClarity) > 30) {
-        // Boost presence (around 3kHz) for clarity
-        const gain = Math.round((parseInt(voiceClarity) / 100) * 8); // Max 8dB boost
-        filters.push(`equalizer=f=3000:width_type=h:width=2000:g=${gain}`);
+
+    // 2. Intelligent Multi-Stage Noise Suppression
+    if (nRed > 0) {
+      // Stage 2a: Adaptive Noise Gate (silences room noise / fan during pauses)
+      if (nRed >= 25) {
+        // Maps 25-100% to -52dB to -30dB threshold
+        const gateThresh = Math.round(-52 + ((nRed - 25) / 75) * 22);
+        const ratio = Math.min(8, 2 + Math.round((nRed / 100) * 6));
+        filters.push(`agate=threshold=${gateThresh}dB:ratio=${ratio}:attack=8:release=220`);
+      }
+
+      // Stage 2b: FFT Noise Reduction (removes continuous hiss/hum/whine)
+      // nr: 12 to 55 dB reduction
+      const nr = Math.min(60, Math.round(12 + (nRed / 100) * 45));
+      // nf: -40 to -85 dB noise floor
+      const nf = Math.round(-45 - (nRed / 100) * 40);
+      filters.push(`afftdn=nr=${nr}:nf=${nf}:nt=w`);
+    }
+
+    // 3. Voice Clarity & Spectral Enhancement
+    if (vClar > 0) {
+      // Cut boxy / muddy low-mids (around 320Hz - 400Hz) if clarity is dialed up
+      if (vClar > 40) {
+        const mudCut = -Math.round(((vClar - 40) / 60) * 3.5); // Up to -3.5dB
+        filters.push(`equalizer=f=350:width_type=h:width=250:g=${mudCut}`);
+      }
+
+      // Boost vocal presence & intelligibility (around 3.2kHz)
+      if (vClar > 15) {
+        const presenceGain = Math.round((vClar / 100) * 9); // Up to +9dB
+        filters.push(`equalizer=f=3200:width_type=h:width=1800:g=${presenceGain}`);
+      }
+
+      // Add high-end crispness & vocal air (around 8.5kHz)
+      if (vClar > 55) {
+        const airGain = Math.round(((vClar - 55) / 45) * 4.5); // Up to +4.5dB
+        filters.push(`equalizer=f=8500:width_type=h:width=3000:g=${airGain}`);
       }
     }
-    
-    // Volume Normalization
-    if (volumeNormalization && parseInt(volumeNormalization) > 0) {
-      filters.push(`acompressor=ratio=4`);
-      if (parseInt(volumeNormalization) > 50) {
-        filters.push(`loudnorm`);
+
+    // 4. De-Esser (controls harsh sibilance / sharp 's' sounds)
+    if (isDeEss || (vClar > 60 && isDeEss !== false)) {
+      filters.push(`deesser=i=0.4:m=0.5:f=0.5:s=o`);
+    }
+
+    // 5. Volume Normalization & Dynamic Range Control
+    if (vNorm > 0) {
+      // Compressor to smooth peaks and bring up quiet speech
+      if (vNorm > 15) {
+        const compRatio = 2 + (vNorm / 100) * 3; // 2 to 5 ratio
+        const makeup = Math.round((vNorm / 100) * 3);
+        filters.push(`acompressor=threshold=-18dB:ratio=${compRatio.toFixed(1)}:attack=15:release=160:makeup=${makeup}`);
+      }
+
+      // EBU R128 Loudness Normalization for broadcast-standard consistency
+      if (vNorm >= 65) {
+        filters.push(`loudnorm=I=-16:LRA=11:TP=-1.5`);
+      } else if (vNorm > 35) {
+        filters.push(`volume=1.3`);
       }
     }
-    
+
     if (filters.length > 0) {
       command = command.audioFilters(filters.join(','));
     }

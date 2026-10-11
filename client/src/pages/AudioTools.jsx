@@ -21,6 +21,41 @@ const AUDIO_BITRATES = [
   { value: '320k', label: 'Studio Quality — 320 kbps' },
 ];
 
+const ENHANCE_PRESETS = [
+  {
+    id: 'podcast',
+    name: 'Podcast & Speech',
+    badge: 'Recommended',
+    desc: 'Dual-stage noise gate + FFT denoiser, vocal presence boost & broadcast loudnorm.',
+    icon: 'Mic',
+    settings: { noiseReduction: 65, voiceClarity: 75, volumeNormalization: 80, deEsser: true, bassCut: true }
+  },
+  {
+    id: 'aggressive',
+    name: 'Heavy Denoise',
+    badge: 'Noisy Rooms',
+    desc: 'Max background silence for loud AC, street traffic & continuous computer fan whine.',
+    icon: 'Zap',
+    settings: { noiseReduction: 90, voiceClarity: 85, volumeNormalization: 90, deEsser: true, bassCut: true }
+  },
+  {
+    id: 'music',
+    name: 'Music & Instruments',
+    badge: 'Natural Acoustic',
+    desc: 'Gentle noise floor control while preserving natural acoustics, dynamic range & warmth.',
+    icon: 'Music',
+    settings: { noiseReduction: 25, voiceClarity: 35, volumeNormalization: 50, deEsser: false, bassCut: false }
+  },
+  {
+    id: 'gentle',
+    name: 'Subtle Polish',
+    badge: 'Light Clean',
+    desc: 'Subtle hiss cleanup, gentle vocal EQ lifting, and mild loudness balancing.',
+    icon: 'Wand2',
+    settings: { noiseReduction: 35, voiceClarity: 50, volumeNormalization: 65, deEsser: false, bassCut: true }
+  }
+];
+
 function formatSize(bytes) {
   if (bytes < 1024) return bytes + ' B';
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
@@ -45,10 +80,13 @@ export default function AudioTools() {
   const [quality, setQuality] = useState(80);
   const [enhance, setEnhance] = useState(false);
   
-  // Enhancement intensity controls
-  const [noiseReduction, setNoiseReduction] = useState(50);
-  const [voiceClarity, setVoiceClarity] = useState(50);
-  const [volumeNormalization, setVolumeNormalization] = useState(100);
+  // Enhancement intensity controls & presets
+  const [activePreset, setActivePreset] = useState('podcast');
+  const [noiseReduction, setNoiseReduction] = useState(65);
+  const [voiceClarity, setVoiceClarity] = useState(75);
+  const [volumeNormalization, setVolumeNormalization] = useState(80);
+  const [deEsser, setDeEsser] = useState(true);
+  const [bassCut, setBassCut] = useState(true);
   
   // Trimming states
   const [startTime, setStartTime] = useState(0);
@@ -68,9 +106,12 @@ export default function AudioTools() {
     setFormat('mp3');
     setQuality(80);
     setEnhance(false);
-    setNoiseReduction(50);
-    setVoiceClarity(50);
-    setVolumeNormalization(100);
+    setActivePreset('podcast');
+    setNoiseReduction(65);
+    setVoiceClarity(75);
+    setVolumeNormalization(80);
+    setDeEsser(true);
+    setBassCut(true);
     setStartTime(0);
     setEndTime(0);
     setAudioDuration(0);
@@ -180,6 +221,8 @@ export default function AudioTools() {
       formData.append('noiseReduction', noiseReduction);
       formData.append('voiceClarity', voiceClarity);
       formData.append('volumeNormalization', volumeNormalization);
+      formData.append('deEsser', deEsser);
+      formData.append('bassCut', bassCut);
     }
     
     if (startTime > 0) formData.append('startTime', startTime);

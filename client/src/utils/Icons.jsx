@@ -147,5 +147,44 @@ export const Icons = {
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
     </svg>
+  ),
+  Mic: () => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+      <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+      <line x1="12" x2="12" y1="19" y2="22"></line>
+    </svg>
+  ),
+  Volume2: () => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+      <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+      <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+    </svg>
+  ),
+  Wand2: () => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z"></path>
+      <path d="m14 7 3 3"></path>
+      <path d="M5 6v4"></path>
+      <path d="M19 14v4"></path>
+      <path d="M10 2v2"></path>
+      <path d="M7 8H3"></path>
+      <path d="M21 16h-4"></path>
+      <path d="M11 3H9"></path>
+    </svg>
+  ),
+  Sliders: () => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="4" x2="4" y1="21" y2="14"></line>
+      <line x1="4" x2="4" y1="10" y2="3"></line>
+      <line x1="12" x2="12" y1="21" y2="12"></line>
+      <line x1="12" x2="12" y1="8" y2="3"></line>
+      <line x1="20" x2="20" y1="21" y2="16"></line>
+      <line x1="20" x2="20" y1="12" y2="3"></line>
+      <line x1="1" x2="7" y1="14" y2="14"></line>
+      <line x1="9" x2="15" y1="8" y2="8"></line>
+      <line x1="17" x2="23" y1="16" y2="16"></line>
+    </svg>
   )
 };
