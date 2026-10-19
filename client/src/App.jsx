@@ -125,7 +125,7 @@ function App() {
           <a href="https://www.linkedin.com/in/piyush-chauhan-353822385/" target="_blank" rel="noopener noreferrer" className="social-link" title="LinkedIn">
             <Icons.LinkedIn />
           </a>
-          <a href="https://www.instagram.com/piyu5h.08?igsh=MXJvcnlnb2hwZHliMQ%3D%3D" target="_blank" rel="noopener noreferrer" className="social-link" title="Instagram">
+          <a href="https://www.instagram.com/hey_piyu5h?utm_source=qr&mdxt=MnY5MWJ4Znlod2My" target="_blank" rel="noopener noreferrer" className="social-link" title="Instagram">
             <Icons.Instagram />
           </a>
           <a href="https://github.com/piyushch08" target="_blank" rel="noopener noreferrer" className="social-link" title="GitHub">
